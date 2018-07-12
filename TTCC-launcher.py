@@ -1,5 +1,5 @@
-#made by TheMaskedMeowth, this super epic script lets you log in hella frickin quick
-#requirements: python 2.7, requests library, you gotta put it in your TTCC folder or else it wont work lol
+#made by TheMaskedMeowth, this super epic script lets you log in at light speeds not previously known to mankind
+#requirements: python 2.7, requests library (just do pip install requests on command prompt after you get python), you gotta put it in your TTCC folder or else it wont work lol
 
 from __future__ import print_function
 import os
