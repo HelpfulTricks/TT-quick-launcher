@@ -114,7 +114,7 @@ def newaccount():
 			pw += x
 	print('New Password: ' + hpw)
 	tc = {'username': un, 'password': pw,}
-	t = startgame()
+	t = startgame(tc, False, False)
 	if t:
 		credentials.append(tc)
 		with open('credentials.json', 'w') as f:
