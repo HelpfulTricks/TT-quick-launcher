@@ -22,7 +22,7 @@ def login():
 			pass
 		elif x == '\r':
 			break
-		elif x == 'o' or x == 'd' or x == 'n' or x == 'e' or x == 'h' or x == 'a' or x == 'r' or x == 'u':
+		elif x == 'o' or x == 'd' or x == 'p' or x == 'n' or x == 'e' or x == 'h' or x == 'a' or x == 'r' or x == 'u':
 			outer = x
 		elif ord(x) == 8:
 			if outer != '':
@@ -36,6 +36,8 @@ def login():
 		sm = '0'
 	if outer == 'd':
 		debugstart()
+	elif outer == 'p':
+		population()
 	elif outer == 'n':
 		newaccount()
 	elif outer == 'h':
@@ -96,7 +98,17 @@ def sphandler(clash, tc, rs):
 			else:
 				login()
 				break
-				
+
+def population():
+	import requests
+	url = 'https://corporateclash.net/api/v1/districts/'
+	r = requests.get(url).json()
+	population = 0
+	for a in r:
+		population += a[u'population'] 
+	print("There are currently " + str(population) + " people in-game.")
+	login()
+	
 def newaccount():
 	un = raw_input("New Username: ")
 	pw = ''
@@ -126,7 +138,7 @@ def accountlist():
 	login()
 
 def help():
-	print("So basically the numbers you put in are going to correspond to the accounts, and letters you put in each correspond to \n\"arguments\" you can use. Right now there are 6 arguments: \no: Launches the game as normal, but turns verbose output off and closes the launcher after\nr: Causes the game to immediately restart after it closes\nh: Accesses this help screen\nn: Allows you add a new account to your credentials list\na: Displays a list of usernames in your credentials list\nd: Launches the game without a playcookie for limited debug purposes.\ne: Exits the launcher\nPress any key when you're done with this dialog to restart.")
+	print("So basically the numbers you put in are going to correspond to the accounts, and letters you put in each correspond to \n\"arguments\" you can use. Right now there are 6 arguments: \no: Launches the game as normal, but turns verbose output off and closes the launcher after\nr: Causes the game to immediately restart after it closes\nh: Accesses this help screen\np: Shows the current in-game population\nn: Allows you add a new account to your credentials list\na: Displays a list of usernames in your credentials list\nd: Launches the game without a playcookie for limited debug purposes.\ne: Exits the launcher\nPress any key when you're done with this dialog to restart.")
 	junk = msvcrt.getch()
 	os.system("cls")
 	login()
