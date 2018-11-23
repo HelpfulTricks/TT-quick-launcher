@@ -1,10 +1,12 @@
+#TTCC/TTR launcher script v1.0.7
 #made by TheMaskedMeowth, this super epic script lets you log in at light speeds not previously known to mankind
-#requirements: python 2.7, requests library (just do pip install requests on command prompt after you get python), you gotta put it in your TTCC folder or else it wont work lol
+#requirements: python 3.7, requests library (just do pip install requests on command prompt after you get python), you gotta put it in your TTCC folder or else it wont work lol
 
-from __future__ import print_function
 import os
+import sys
 import msvcrt
 import subprocess
+import win32com.shell.shell as shell
 
 def login():
 	sm = ''
@@ -15,23 +17,24 @@ def login():
 		info = "Enter numbers between 0 and " + chr(47 + len(credentials)) + " for accounts, or argument characters (use \"h\" for info): "
 	while True:
 		if len(credentials) == 1:
-			sm = ''
-		print(info + sm + outer + '			   ', end='\r')
-		x = msvcrt.getch()
-		if sm.find(x) != -1:
+			sm = ""
+		print(info + sm + str(outer) + '			   ', end='\r')
+		lol = msvcrt.getch()
+		x = chr(int.from_bytes(lol, byteorder='big'))
+		if sm.find(str(x)) != -1:
 			pass
 		elif x == '\r':
 			break
-		elif x == 'o' or x == 'd' or x == 'p' or x == 'n' or x == 'e' or x == 'h' or x == 'a' or x == 'r' or x == 'u':
+		elif x == 'o' or x == 'r' or x == 'd' or x == 'p' or x == 'n' or x == 'e' or x == 'h' or x == 'a' or x == 'u':
 			outer = x
 		elif ord(x) == 8:
 			if outer != '':
 				outer = ''
 			else:
 				sm = sm[:-1]
-		elif ord(x) >= 48 and ord(x) <= len(credentials) + 47 and x not in sm:
-			sm += x
-	print(info + sm + outer)
+		elif ord(x) >= 48 and ord(x) <= len(credentials) + 47 and str(x) not in sm:
+			sm += str(x)
+	print(info + sm + str(outer))
 	if len(credentials) == 1:
 		sm = '0'
 	if outer == 'd':
@@ -57,11 +60,12 @@ def login():
 					vb = True
 				if outer == 'r':
 					rs = True
-			startgame(credentials[ord(c) - 48], vb, rs)
+			if game == 'C':
+				startCC(credentials[ord(c) - 48], vb, rs)
 				
-def startgame(tc, vb, rs):
+def startCC(tc, vb, rs):
 	import requests
-	url = ('https://corporateclash.net/api/v1/login/')
+	url = ('https://corporateclash.net/api/v1/login/' + tc[u'username'])
 	r = requests.post(url, json=tc)
 	if r.json()[u'reason'] == 1000 or r.json()[u'reason'] == 0:
 		print("Welcome back to Toontown, " + tc[u'username'] + "!")
@@ -82,12 +86,12 @@ def startgame(tc, vb, rs):
 		login()
 		return False
 		
-def debugstart():
+def debugStart():
 	os.environ["TT_PLAYCOOKIE"] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 	os.environ["TT_GAMESERVER"] = "gs.corporateclash.net"
 	clash = subprocess.Popen(args="CorporateClash.exe")
 	
-def sphandler(clash, tc, rs):
+def spHandler(clash, tc, rs):
 	import time
 	while True:
 		time.sleep(3)
@@ -134,15 +138,30 @@ def newaccount():
 
 def accountlist():
 	for i in range(0, len(credentials)):
-		print(str(i) + ": " + credentials[i][u'username'])
+		print(chr(i + 48) + " - " + credentials[i][u'username'])
 	login()
 
-def help():
+def clashHelp():
 	print("So basically the numbers you put in are going to correspond to the accounts, and letters you put in each correspond to \n\"arguments\" you can use. Right now there are 6 arguments: \no: Launches the game as normal, but turns verbose output off and closes the launcher after\nr: Causes the game to immediately restart after it closes\nh: Accesses this help screen\np: Shows the current in-game population\nn: Allows you add a new account to your credentials list\na: Displays a list of usernames in your credentials list\nd: Launches the game without a playcookie for limited debug purposes.\ne: Exits the launcher\nPress any key when you're done with this dialog to restart.")
 	junk = msvcrt.getch()
 	os.system("cls")
 	login()
+	
+def ttrHelp():
+	print("So basically the numbers you put in are going to correspond to the accounts, and letters you put in each correspond to \n\"arguments\" you can use. Right now there are 6 arguments: \nh: Accesses this help screen\nn: Allows you add a new account to your credentials list\na: Displays a list of usernames in your credentials list\ne: Exits the launcher\nPress any key when you're done with this dialog to restart.")
+	junk = msvcrt.getch()
+	os.system("cls")
+	login()
 
+game = ''
+p = os.path.split(os.path.normpath(sys.path[0]))[1]
+if p == "Corporate Clash":
+	game = 'C'
+else:
+	print("Please put this file in your Corporate Clash folder! Press any key to exit...")
+	junk = msvcrt.getch()
+	os.system("cls")
+	sys.exit()
 credentials = []
 logincheck = False
 try:
