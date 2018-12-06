@@ -1,4 +1,4 @@
-#Toontown Corporate Clash & Toontown Rewritten launcher script v1.1
+#Toontown Corporate Clash & Toontown Rewritten launcher script v1.1.1
 #made by TheMaskedMeowth, this super epic script lets you log in at light speeds not previously known to mankind
 #requirements: python 3.7, requests library (just do pip install requests on command prompt after you get python), you have to put this file in your game folder
 
@@ -182,14 +182,8 @@ def accountlist():
 		print(chr(i + 48) + " - " + credentials[i][u'username'])
 	login()
 
-def clashHelp():
-	print("So basically the numbers you put in are going to correspond to the accounts, and letters you put in each correspond to \n\"arguments\" you can use. Right now there are 6 arguments: \no: Launches the game as normal, but turns verbose output off and closes the launcher after\nr: Causes the game to immediately restart after it closes\nh: Accesses this help screen\np: Shows the current in-game population\nn: Allows you add a new account to your credentials list\na: Displays a list of usernames in your credentials list\nd: Launches the game without a playcookie for limited debug purposes.\ne: Exits the launcher\nPress any key when you're done with this dialog to restart.")
-	junk = msvcrt.getch()
-	os.system("cls")
-	login()
-	
-def ttrHelp():
-	print("So basically the numbers you put in are going to correspond to the accounts, and letters you put in each correspond to \n\"arguments\" you can use. Right now there are 6 arguments: \nh: Accesses this help screen\nn: Allows you add a new account to your credentials list\na: Displays a list of usernames in your credentials list\ne: Exits the launcher\nPress any key when you're done with this dialog to restart.")
+def help():
+	print("So basically the numbers you put in are going to correspond to the accounts, and letters you put in each correspond to \n\"arguments\" you can use. Right now there are 6 arguments: \no: Launches the game as normal, but turns verbose output off and closes the launcher after\nr: Causes the game to immediately restart after it closes\nh: Accesses this help screen\np: Shows the current in-game population\nn: Allows you add a new account to your credentials list\na: Displays a list of usernames in your credentials list, as well as their corresponding numbers\nd: Launches the game without a playcookie for limited debug purposes.\ne: Exits the launcher\nPress any key when you're done with this dialog to restart.")
 	junk = msvcrt.getch()
 	os.system("cls")
 	login()
