@@ -1,6 +1,6 @@
-#Toontown Corporate Clash & Toontown Rewritten launcher GUI v1.2
-#Made by TheMaskedMeowth, this super epic script lets you log in at light speeds not previously known to mankind AND now it looks cool!
-#requirements: python 3.7, you have to put this file and guiLauncher.ui in your game folder
+#Pygubu-based Toontown launcher script v1.2.1 by TheMaskedMeowth
+#This super epic script lets you log in at light speeds not previously known to mankind AND it looks cool too
+#Requirements: python 3.7, you have to put this file and guiLauncher.ui in your game folder
 #The other script, launcher.py, is a command prompt-based version of this. They both use the same credentials.json, so you can use them interchangably.
 
 try:
@@ -14,18 +14,19 @@ except:
 	
 class Application:
 	def __init__(self, master, credentials, winName):
-		
 		usernames = ""
 		for i in credentials:
-			usernames += "\"" + i[u'username'] + "\" "
-		
+			usernames += "\"" + i[u'username'] + "\" "	
 		self.builder = builder = pygubu.Builder()
-		builder.add_from_file('guiLauncher.ui')
+		try:
+			builder.add_from_file('guiLauncher.ui')
+		except:
+			exitLauncher("Please make sure that guiLauncher.ui is in the same folder as this script! Press any key to exit...")
 		self.mainwindow = builder.get_object(winName, master)
-		builder.connect_callbacks(self)
-		
-		if winName == "main":
-			master.protocol("WM_DELETE_WINDOW", self.onCloseWindow)
+		if winName == "newAccount":
+			builder.connect_callbacks({'onNAGoClick': self.onNAGoClick})
+		elif winName == "main":
+			builder.connect_callbacks({'onGoClick': self.onGoClick})
 			self.builder.get_object('accountList').configure(values=usernames)
 	
 	def onGoClick(self):
@@ -56,25 +57,26 @@ class Application:
 	def onNAGoClick(self):
 		account = {'username': self.builder.get_object('unField').get(), 'password': self.builder.get_object('passField').get()}
 		self.mainwindow.master.destroy()
-		vb = True
-		rs = False
 		if game == 'C':
-			startCC(account, vb, rs)
+			t = startCC(account, False, False)
 		elif game == 'R':
-			startTTR(account, vb, rs)
+			t = startTTR(account, False, False)
 		if t:
 			credentials.append(account)
 			with open('credentials.json', 'w') as f:
 				f.write(str(credentials))
-		
-	def onCloseWindow(self, event=None):
-		sys.exit()
 
 def launchWindow(winName):
 	root = tk.Tk()
 	app = Application(root, credentials, winName)
 	root.title("Toontown Launcher")
 	root.mainloop()
+	
+def exitLauncher(message):
+	print(message)
+	junk = msvcrt.getch()
+	os.system("cls")
+	sys.exit()
 	
 def startCC(tc, vb, rs):
 	url = ('https://corporateclash.net/api/v1/login/' + tc[u'username'])
@@ -91,10 +93,10 @@ def startCC(tc, vb, rs):
 		return True
 	else:
 		print("Login failed with error code " + str(r.json()[u'reason']) + ". (" + str(r.json()[u'friendlyreason']) + ")")
-		print("Press any key to restart...")
-		junk = msvcrt.getch()
-		os.system("cls")
-		login()
+		if loginCheck == False:
+			launchWindow("newAccount")
+		else:
+			launchWindow("main")
 		return False
 		
 def startTTR(tc, vb, rs):
@@ -129,10 +131,11 @@ def startTTR(tc, vb, rs):
 			gw = subprocess.Popen(args="TTREngine.exe", creationflags=0x08000000)
 		return True
 	else:
-		print("Oof! Login has failed. Press any key to restart...")
-		junk = msvcrt.getch()
-		os.system("cls")
-		login()
+		print("Oof! Login failed with no error code.")
+		if loginCheck == False:
+			launchWindow("newAccount")
+		else:
+			launchWindow("main")
 		return False
 		
 def spHandler(gw, tc, rs):
@@ -155,21 +158,19 @@ def gameCheck():
 		if shell.IsUserAnAdmin():
 			game = 'R'
 		else:
-			print("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
-			junk = msvcrt.getch()
-			os.system("cls")
-			sys.exit()
+			exitLauncher("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
 	else:
-		print("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
-		junk = msvcrt.getch()
-		os.system("cls")
-		sys.exit()
+		exitLauncher("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
 	return game
 
 game = gameCheck()
 credentials = []
+winName = ""
+loginCheck = False
 try:
 	credentials = eval(open('credentials.json', 'r').read())
-	launchWindow("main")
+	winName = "main"
+	loginCheck = True
 except:
-	launchWindow("newAccount")
+	winName = "newAccount"
+launchWindow(winName)

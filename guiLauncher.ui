@@ -32,7 +32,7 @@
     <child>
       <object class="ttk.Combobox" id="otherOptions">
         <property name="takefocus">true</property>
-        <property name="values">"New Account" "No Verbose Output" "Restart on Exit"</property>
+        <property name="values">"No Verbose Output" "Restart on Exit" "New Account"</property>
         <layout>
           <property name="column">0</property>
           <property name="propagate">True</property>

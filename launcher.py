@@ -1,6 +1,6 @@
-#Toontown Corporate Clash & Toontown Rewritten launcher script v1.2
-#made by TheMaskedMeowth, this super epic script lets you log in at light speeds not previously known to mankind
-#requirements: python 3.7, you have to put this file in your game folder
+#Command prompt-based Toontown launcher script v1.2.1 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
+#This super epic script lets you log in at light speeds not previously known to mankind
+#Requirements: python 3.7, you have to put this file in your game folder
 #The other script, guiLauncher.py, is a pygubu-based version of this. They both use the same credentials.json, so you can use them interchangably.
 
 try:
@@ -28,7 +28,7 @@ def login():
 			pass
 		elif x == '\r':
 			break
-		elif x == 'o' or x == 'r' or x == 'd' or x == 'p' or x == 'n' or x == 'e' or x == 'h' or x == 'a' or x == 'u':
+		elif x == 'o' or x == 'r' or x == 'n' or x == 'e' or x == 'h' or x == 'a':
 			outer = x
 		elif ord(x) == 8:
 			if outer != '':
@@ -40,14 +40,12 @@ def login():
 	print(info + sm + str(outer))
 	if len(credentials) == 1:
 		sm = '0'
-	elif outer == 'n':
-		newaccount()
+	if outer == 'n':
+		newAccount()
 	elif outer == 'h':
 		help()
 	elif outer == 'a':
-		accountlist()
-	elif outer == 'u':
-		update()
+		accountList()
 	elif outer == 'e' or (outer == '' and sm == ''):
 		return
 	else:
@@ -83,7 +81,10 @@ def startCC(tc, vb, rs):
 		print("Press any key to restart...")
 		junk = msvcrt.getch()
 		os.system("cls")
-		login()
+		if loginCheck == False:
+			newAccount()
+		else:
+			login()
 		return False
 		
 def startTTR(tc, vb, rs):
@@ -121,7 +122,10 @@ def startTTR(tc, vb, rs):
 		print("Oof! Login has failed. Press any key to restart...")
 		junk = msvcrt.getch()
 		os.system("cls")
-		login()
+		if loginCheck == False:
+			newAccount()
+		else:
+			login()
 		return False
 	
 def spHandler(gw, tc, rs):
@@ -137,30 +141,34 @@ def spHandler(gw, tc, rs):
 				login()
 				break
 	
-def newaccount():
-	un = raw_input("New Username: ")
+def newAccount():
+	un = input("New Username: ")
 	pw = ''
 	while True:
 		hpw = ''
 		for c in pw:
 			hpw += '*'
 		print('New Password: ' + hpw + '										 ', end='\r')
-		x = msvcrt.getch()
+		lol = msvcrt.getch()
+		x = chr(int.from_bytes(lol, byteorder='big'))
 		if x == '\r':
 			break
 		elif ord(x) == 8:
 			pw = pw[:-1]
 		elif ord(x) >= 33 and ord(x) <= 126:
-			pw += x
+			pw += str(x)
 	print('New Password: ' + hpw)
 	tc = {'username': un, 'password': pw,}
-	t = startgame(tc, False, False)
+	if game == 'C':
+		t = startCC(tc, False, False)
+	elif game == 'R':
+		t = startTTR(tc, False, False)
 	if t:
 		credentials.append(tc)
 		with open('credentials.json', 'w') as f:
 			f.write(str(credentials))
 
-def accountlist():
+def accountList():
 	for i in range(0, len(credentials)):
 		print(chr(i + 48) + " - " + credentials[i][u'username'])
 	login()
@@ -171,29 +179,32 @@ def help():
 	os.system("cls")
 	login()
 
-game = ''
-p = os.path.split(os.path.normpath(sys.path[0]))[1]
-if p == "Corporate Clash":
-	game = 'C'
-elif p == "Toontown Rewritten":
-	if shell.IsUserAnAdmin():
-		game = 'R'
-	else:
-		print("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
-		junk = msvcrt.getch()
-		os.system("cls")
-		sys.exit()
-else:
-	print("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
+def exitLauncher(message):
+	print(message)
 	junk = msvcrt.getch()
 	os.system("cls")
-	sys.exit()
+	sys.exit()	
+
+def gameCheck():
+	p = os.path.split(os.path.normpath(sys.path[0]))[1]
+	if p == "Corporate Clash":
+		game = 'C'
+	elif p == "Toontown Rewritten":
+		if shell.IsUserAnAdmin():
+			game = 'R'
+		else:
+			exitLauncher("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
+	else:
+		exitLauncher("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
+	return game
+
+game = gameCheck()
 credentials = []
-logincheck = False
+loginCheck = False
 try:
 	credentials = eval(open('credentials.json', 'r').read())
-	logincheck = True
+	loginCheck = True
 except:
-	newaccount()
-if logincheck:
+	newAccount()
+if loginCheck:
 	login()
