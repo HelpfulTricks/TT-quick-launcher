@@ -4,7 +4,7 @@
 #The other script, launcher.py, is a command prompt-based version of this. They both use the same credentials.json, so you can use them interchangably.
 
 try:
-	import requests, os, sys, msvcrt, subprocess, win32com.shell.shell as shell, tkinter as tk, pygubu
+	import requests, os, sys, msvcrt, subprocess, win32gui, win32con, win32com.shell.shell as shell, tkinter as tk, pygubu
 except:
 	import pip
 	pip.main(['install', 'requests'])
@@ -48,6 +48,8 @@ class Application:
 				vb = False
 			elif option == "Restart on Exit":
 				rs = True
+			win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
+			win32gui.SetForegroundWindow(cmdWindow)
 			self.mainwindow.master.destroy()
 			if game == 'C':
 				startCC(account, vb, rs)
@@ -56,6 +58,8 @@ class Application:
 			
 	def onNAGoClick(self):
 		account = {'username': self.builder.get_object('unField').get(), 'password': self.builder.get_object('passField').get()}
+		win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
+		win32gui.SetForegroundWindow(cmdWindow)
 		self.mainwindow.master.destroy()
 		if game == 'C':
 			t = startCC(account, False, False)
@@ -145,8 +149,12 @@ def spHandler(gw, tc, rs):
 		poll = gw.poll()
 		if poll != None:
 			if rs:
-				startgame(tc, True, True)
+				if game == 'C':
+					startCC(tc, True, True)
+				elif game == 'R':
+					startTTR(tc, True, True)
 			else:
+				win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
 				launchWindow("main")
 				break
 	
@@ -163,6 +171,8 @@ def gameCheck():
 		exitLauncher("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
 	return game
 
+cmdWindow = win32gui.GetForegroundWindow()
+win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
 game = gameCheck()
 credentials = []
 winName = ""

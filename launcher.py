@@ -136,7 +136,10 @@ def spHandler(gw, tc, rs):
 		poll = gw.poll()
 		if poll != None:
 			if rs:
-				startgame(tc, True, True)
+				if game == 'C':
+					startCC(tc, True, True)
+				elif game == 'R':
+					startTTR(tc, True, True)
 			else:
 				login()
 				break
