@@ -1,16 +1,16 @@
-#Pygubu-based Toontown launcher script v1.2.1 by TheMaskedMeowth
+#Pygubu-based Toontown launcher script v1.2.3 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
 #This super epic script lets you log in at light speeds not previously known to mankind AND it looks cool too
 #Requirements: python 3.7, you have to put this file and guiLauncher.ui in your game folder
-#The other script, launcher.py, is a command prompt-based version of this. They both use the same credentials.json, so you can use them interchangably.
+#The other script, launcher.py, is a command prompt-based version of this. They both use the same credentials.json to save accounts, so you can use them interchangably.
 
+import subprocess, os, sys, msvcrt, tkinter as tk
 try:
-	import requests, os, sys, msvcrt, subprocess, win32gui, win32con, win32com.shell.shell as shell, tkinter as tk, pygubu
+	import requests, win32gui, win32con, win32com.shell.shell as shell, pygubu
 except:
-	import pip
-	pip.main(['install', 'requests'])
-	pip.main(['install', 'pywin32'])
-	pip.main(['install', 'pygubu'])
-	import requests, os, sys, msvcrt, subprocess, win32com.shell.shell as shell, tkinter as tk, pygubu
+	subprocess.check_call(["py", '-m', 'pip', 'install', 'requests'])
+	subprocess.check_call(["py", '-m', 'pip', 'install', 'pywin32'])
+	subprocess.check_call(["py", '-m', 'pip', 'install', 'pygubu'])
+	import requests, win32gui, win32con, win32com.shell.shell as shell, pygubu
 	
 class Application:
 	def __init__(self, master, credentials, winName):
@@ -71,6 +71,7 @@ class Application:
 				f.write(str(credentials))
 
 def launchWindow(winName):
+	win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
 	root = tk.Tk()
 	app = Application(root, credentials, winName)
 	root.title("Toontown Launcher")
@@ -97,10 +98,7 @@ def startCC(tc, vb, rs):
 		return True
 	else:
 		print("Login failed with error code " + str(r.json()[u'reason']) + ". (" + str(r.json()[u'friendlyreason']) + ")")
-		if loginCheck == False:
-			launchWindow("newAccount")
-		else:
-			launchWindow("main")
+		launchWindow(winName)
 		return False
 		
 def startTTR(tc, vb, rs):
@@ -136,10 +134,7 @@ def startTTR(tc, vb, rs):
 		return True
 	else:
 		print("Oof! Login failed with no error code.")
-		if loginCheck == False:
-			launchWindow("newAccount")
-		else:
-			launchWindow("main")
+		launchWindow(winName)
 		return False
 		
 def spHandler(gw, tc, rs):
@@ -154,33 +149,30 @@ def spHandler(gw, tc, rs):
 				elif game == 'R':
 					startTTR(tc, True, True)
 			else:
-				win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
 				launchWindow("main")
 				break
 	
-def gameCheck():
+def decGlobals():
+	globals = []
 	p = os.path.split(os.path.normpath(sys.path[0]))[1]
 	if p == "Corporate Clash":
-		game = 'C'
+		globals.append('C')
 	elif p == "Toontown Rewritten":
 		if shell.IsUserAnAdmin():
-			game = 'R'
+			globals.append('R')
 		else:
 			exitLauncher("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
 	else:
 		exitLauncher("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
-	return game
+	globals.append(win32gui.GetForegroundWindow())
+	globals.append([])
+	globals.append("")
+	try:
+		globals[2] = eval(open('credentials.json', 'r').read())
+		globals[3] = "main"
+	except:
+		globals[3] = "newAccount"
+	return globals
 
-cmdWindow = win32gui.GetForegroundWindow()
-win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
-game = gameCheck()
-credentials = []
-winName = ""
-loginCheck = False
-try:
-	credentials = eval(open('credentials.json', 'r').read())
-	winName = "main"
-	loginCheck = True
-except:
-	winName = "newAccount"
+game, cmdWindow, credentials, winName = decGlobals()
 launchWindow(winName)

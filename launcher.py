@@ -1,15 +1,15 @@
-#Command prompt-based Toontown launcher script v1.2.1 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
+#Command prompt-based Toontown launcher script v1.2.3 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
 #This super epic script lets you log in at light speeds not previously known to mankind
 #Requirements: python 3.7, you have to put this file in your game folder
-#The other script, guiLauncher.py, is a pygubu-based version of this. They both use the same credentials.json, so you can use them interchangably.
+#The other script, guiLauncher.py, is a pygubu-based version of this. They both use the same credentials.json to save accounts, so you can use them interchangably.
 
+import subprocess, os, sys, msvcrt
 try:
-	import requests, os, sys, msvcrt, subprocess, win32com.shell.shell as shell
+	import requests, win32com.shell.shell as shell
 except:
-	import pip
-	pip.main(['install', 'requests'])
-	pip.main(['install', 'pywin32'])
-	import requests, os, sys, msvcrt, subprocess, win32com.shell.shell as shell
+	subprocess.check_call(["py", '-m', 'pip', 'install', 'requests'])
+	subprocess.check_call(["py", '-m', 'pip', 'install', 'pywin32'])
+	import requests, win32com.shell.shell as shell
 
 def login():
 	sm = ''
