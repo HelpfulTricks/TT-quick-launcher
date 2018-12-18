@@ -1,69 +1,81 @@
-#Command prompt-based Toontown launcher script v1.2.3 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
-#This super epic script lets you log in at light speeds not previously known to mankind
-#Requirements: python 3.7, you have to put this file in your game folder
-#The other script, guiLauncher.py, is a pygubu-based version of this. They both use the same credentials.json to save accounts, so you can use them interchangably.
+#Pygubu-based Toontown launcher script v1.3 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
+#This super epic script lets you log in pretty fast, and it's all self-contained within one little file
+#Requirements: You'll need python 3.7, and you'll have to put this file in your game folder
 
-import subprocess, os, sys, msvcrt
+import subprocess, os, sys, msvcrt, tkinter as tk
 try:
-	import requests, win32com.shell.shell as shell
+	import requests, win32ui, win32gui, win32con, win32com.shell.shell as shell, pygubu
 except:
 	subprocess.check_call(["py", '-m', 'pip', 'install', 'requests'])
 	subprocess.check_call(["py", '-m', 'pip', 'install', 'pywin32'])
-	import requests, win32com.shell.shell as shell
+	subprocess.check_call(["py", '-m', 'pip', 'install', 'pygubu'])
+	import requests, win32ui, win32gui, win32con, win32com.shell.shell as shell, pygubu
+	
+class Application:
+	def __init__(self, master, credentials, winName):
+		self.builder = builder = pygubu.Builder()
+		builder.add_from_string(xmlData)
+		self.mainwindow = builder.get_object(winName, master)
+		builder.connect_callbacks(self)
+	
+	def onGoClick(self):
+		accList = []
+		for u in usernames:
+			if self.builder.get_variable('acct' + str(usernames.index(u))).get():
+				for a in credentials:
+					if u == a[u'username']:
+						accList.append(a)
+		if accList != []:
+			win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
+			win32gui.SetForegroundWindow(cmdWindow)
+			self.mainwindow.master.destroy()
+			vb, rs = False, False
+			for a in accList:
+				if len(accList) - 1 == accList.index(a):
+					vb = not self.builder.get_variable('vb').get()
+					rs = self.builder.get_variable('rs').get()
+				if game == 'C':
+					startCC(a, vb, rs)
+				elif game == 'R':
+					startTTR(a, vb, rs)
+	
+	def onNAClick(self):
+		self.mainwindow.master.destroy()
+		launchWindow("newAccount")
 
-def login():
-	sm = ''
-	outer = ''
-	if len(credentials) == 1:
-		info = "Press enter to launch the game, or enter argument characters (use \"h\" for info): "
-	else:
-		info = "Enter numbers between 0 and " + chr(47 + len(credentials)) + " for accounts, or argument characters (use \"h\" for info): "
-	while True:
-		if len(credentials) == 1:
-			sm = ""
-		print(info + sm + str(outer) + '			   ', end='\r')
-		lol = msvcrt.getch()
-		x = chr(int.from_bytes(lol, byteorder='big'))
-		if sm.find(str(x)) != -1:
-			pass
-		elif x == '\r':
-			break
-		elif x == 'o' or x == 'r' or x == 'n' or x == 'e' or x == 'h' or x == 'a':
-			outer = x
-		elif ord(x) == 8:
-			if outer != '':
-				outer = ''
-			else:
-				sm = sm[:-1]
-		elif ord(x) >= 48 and ord(x) <= len(credentials) + 47 and str(x) not in sm:
-			sm += str(x)
-	print(info + sm + str(outer))
-	if len(credentials) == 1:
-		sm = '0'
-	if outer == 'n':
-		newAccount()
-	elif outer == 'h':
-		help()
-	elif outer == 'a':
-		accountList()
-	elif outer == 'e' or (outer == '' and sm == ''):
-		return
-	else:
-		for c in sm:
-			vb = False
-			rs = False
-			if c == sm[len(sm) - 1]:
-				if outer != 'o':
-					vb = True
-				if outer == 'r':
-					rs = True
-			if game == 'C':
-				startCC(credentials[ord(c) - 48], vb, rs)
-			elif game == 'R':
-				startTTR(credentials[ord(c) - 48], vb, rs)
-				
+	def onNAGoClick(self):
+		account = {'username': self.builder.get_object('unField').get(), 'password': self.builder.get_object('passField').get()}
+		win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
+		win32gui.SetForegroundWindow(cmdWindow)
+		self.mainwindow.master.destroy()
+		if game == 'C':
+			t = startCC(account, False, False)
+		elif game == 'R':
+			t = startTTR(account, False, False)
+		if t:
+			credentials.append(account)
+			with open('credentials.json', 'w') as f:
+				f.write(str(credentials))
+
+def launchWindow(winName):
+	root = tk.Tk()
+	app = Application(root, credentials, winName)
+	if game == 'C':
+		winTitle = "Corporate Clash Launcher"
+	elif game == 'R':
+		winTitle = "Toontown Rewritten Launcher"
+	root.title(winTitle)
+	win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
+	root.iconbitmap("Launcher.exe")
+	root.mainloop()
+	
+def exitLauncher(message):
+	print(message)
+	junk = msvcrt.getch()
+	os.system("cls")
+	sys.exit()
+	
 def startCC(tc, vb, rs):
-	import requests
 	url = ('https://corporateclash.net/api/v1/login/' + tc[u'username'])
 	r = requests.post(url, json=tc)
 	if r.json()[u'reason'] == 1000 or r.json()[u'reason'] == 0:
@@ -78,13 +90,7 @@ def startCC(tc, vb, rs):
 		return True
 	else:
 		print("Login failed with error code " + str(r.json()[u'reason']) + ". (" + str(r.json()[u'friendlyreason']) + ")")
-		print("Press any key to restart...")
-		junk = msvcrt.getch()
-		os.system("cls")
-		if loginCheck == False:
-			newAccount()
-		else:
-			login()
+		launchWindow(winName)
 		return False
 		
 def startTTR(tc, vb, rs):
@@ -114,100 +120,243 @@ def startTTR(tc, vb, rs):
 		os.environ["TTR_GAMESERVER"] = r.json()[u'gameserver']
 		if vb:
 			gw = subprocess.Popen(args="TTREngine.exe")
-			spHandler(gw, tc, rs)
 		else:
 			gw = subprocess.Popen(args="TTREngine.exe", creationflags=0x08000000)
+		spHandler(gw, tc, vb, rs)
 		return True
 	else:
-		print("Oof! Login has failed. Press any key to restart...")
-		junk = msvcrt.getch()
-		os.system("cls")
-		if loginCheck == False:
-			newAccount()
-		else:
-			login()
+		print("Oof! Login failed with no error code.")
+		launchWindow(winName)
 		return False
-	
-def spHandler(gw, tc, rs):
+		
+def spHandler(gw, tc, vb, rs):
 	import time
-	print("Please note that verbose output only works for the last client opened.")
+	if not vb:
+		win32gui.ShowWindow(cmdWindow, win32con.SW_HIDE)
 	while True:
 		time.sleep(3)
 		poll = gw.poll()
 		if poll != None:
+			if not vb:
+				win32gui.ShowWindow(cmdWindow, win32con.SW_NORMAL)
 			if rs:
 				if game == 'C':
-					startCC(tc, True, True)
+					startCC(tc, vb, True)
 				elif game == 'R':
-					startTTR(tc, True, True)
+					startTTR(tc, vb, True)
 			else:
-				login()
+				launchWindow("main")
 				break
 	
-def newAccount():
-	un = input("New Username: ")
-	pw = ''
-	while True:
-		hpw = ''
-		for c in pw:
-			hpw += '*'
-		print('New Password: ' + hpw + '										 ', end='\r')
-		lol = msvcrt.getch()
-		x = chr(int.from_bytes(lol, byteorder='big'))
-		if x == '\r':
-			break
-		elif ord(x) == 8:
-			pw = pw[:-1]
-		elif ord(x) >= 33 and ord(x) <= 126:
-			pw += str(x)
-	print('New Password: ' + hpw)
-	tc = {'username': un, 'password': pw,}
-	if game == 'C':
-		t = startCC(tc, False, False)
-	elif game == 'R':
-		t = startTTR(tc, False, False)
-	if t:
-		credentials.append(tc)
-		with open('credentials.json', 'w') as f:
-			f.write(str(credentials))
-
-def accountList():
-	for i in range(0, len(credentials)):
-		print(chr(i + 48) + " - " + credentials[i][u'username'])
-	login()
-
-def help():
-	print("So basically the numbers you put in are going to correspond to the accounts, and letters you put in each correspond to \n\"arguments\" you can use. Right now there are 6 arguments: \no: Launches the game as normal, but turns verbose output off and closes the launcher after\nr: Causes the game to immediately restart after it closes\nh: Accesses this help screen\nn: Allows you add a new account to your credentials list\na: Displays a list of usernames in your credentials list, as well as their corresponding numbers\nd: Launches the game without a playcookie for limited debug purposes.\ne: Exits the launcher\nPress any key when you're done with this dialog to restart.")
-	junk = msvcrt.getch()
-	os.system("cls")
-	login()
-
-def exitLauncher(message):
-	print(message)
-	junk = msvcrt.getch()
-	os.system("cls")
-	sys.exit()	
-
-def gameCheck():
+def decGlobals():
+	globals = []
 	p = os.path.split(os.path.normpath(sys.path[0]))[1]
 	if p == "Corporate Clash":
-		game = 'C'
+		globals.append('C')
 	elif p == "Toontown Rewritten":
 		if shell.IsUserAnAdmin():
-			game = 'R'
+			globals.append('R')
 		else:
 			exitLauncher("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
 	else:
 		exitLauncher("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
-	return game
+	globals.extend([win32gui.GetForegroundWindow(), [], "", []])
+	try:
+		globals[2] = eval(open('credentials.json', 'r').read())
+		globals[3] = ("main")
+		for i in globals[2]:
+			globals[4].append(i[u'username'])
+	except:
+		globals[3]=("newAccount")
+	return globals	
 
-game = gameCheck()
-credentials = []
-loginCheck = False
-try:
-	credentials = eval(open('credentials.json', 'r').read())
-	loginCheck = True
-except:
-	newAccount()
-if loginCheck:
-	login()
+game, cmdWindow, credentials, winName, usernames = decGlobals()
+row = 0
+
+xmlData = '''<?xml version='1.0' encoding='utf-8'?>
+<interface>
+  <object class="ttk.Frame" id="main">
+    <property name="height">200</property>
+    <property name="padding">20</property>
+    <property name="width">200</property>
+    <layout>
+      <property name="column">0</property>
+      <property name="propagate">True</property>
+      <property name="row">0</property>
+    </layout>
+    <child>
+      <object class="ttk.Labelframe" id="accountMenu">
+        <property name="height">200</property>
+        <property name="text" translatable="yes">Select Accounts:</property>
+        <property name="width">200</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="padx">8</property>
+          <property name="pady">10</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+          <property name="sticky">n</property>
+        </layout>'''
+for i in usernames:
+	row += 1
+	xmlData += '''
+        <child>
+          <object class="tk.Checkbutton" id="cb''' + str(usernames.index(i)) + '''">
+            <property name="text" translatable="yes">''' + i + '''</property>
+            <property name="variable">boolean:acct''' + str(usernames.index(i)) + '''</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">''' + str(row) + '''</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>'''
+xmlData += '''    
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Labelframe" id="optionsMenu">
+        <property name="height">200</property>
+        <property name="text" translatable="yes">Options and Launch:</property>
+        <property name="width">200</property>
+        <layout>
+          <property name="column">1</property>
+          <property name="padx">8</property>
+          <property name="pady">10</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+          <property name="sticky">n</property>
+          <rows>
+            <row id="2">
+              <property name="minsize">0</property>
+              <property name="pad">8</property>
+            </row>
+          </rows>
+        </layout>
+        <child>
+          <object class="tk.Checkbutton" id="noVerbose">
+            <property name="text" translatable="yes">No Verbose Output</property>
+            <property name="variable">boolean:vb</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="tk.Checkbutton" id="restart">
+            <property name="overrelief">flat</property>
+            <property name="overrelief">flat</property>
+            <property name="text" translatable="yes">Restart on Exit</property>
+            <property name="variable">boolean:rs</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="goButton">
+            <property name="command">onGoClick</property>
+            <property name="text" translatable="yes">Launch Game</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="ipadx">20</property>
+              <property name="ipady">10</property>
+              <property name="pady">5</property>
+              <property name="propagate">True</property>
+              <property name="row">3</property>
+              <property name="sticky">s</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="naButton">
+            <property name="command">onNAClick</property>
+            <property name="text" translatable="yes">New Account</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="pady">0</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="sticky">s</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="ttk.Frame" id="newAccount">
+    <property name="padding">30</property>
+    <layout>
+      <property name="column">0</property>
+      <property name="propagate">True</property>
+      <property name="row">1</property>
+    </layout>
+    <child>
+      <object class="ttk.Entry" id="unField">
+        <property name="font">TkDefaultFont</property>
+        <property name="validate">focusin</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">1</property>
+        </layout>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Label" id="unLabel">
+        <property name="text" translatable="yes">Username</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+        </layout>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Label" id="passLabel">
+        <property name="text" translatable="yes">Password</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">2</property>
+        </layout>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Entry" id="passField">
+        <property name="font">TkDefaultFont</property>
+        <property name="justify">left</property>
+        <property name="show">•</property>
+        <property name="state">normal</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">3</property>
+        </layout>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Button" id="goButtonNA">
+        <property name="command">onNAGoClick</property>
+        <property name="text" translatable="yes">Launch Game</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="ipadx">20</property>
+          <property name="ipady">10</property>
+          <property name="pady">15</property>
+          <property name="propagate">True</property>
+          <property name="row">5</property>
+        </layout>
+      </object>
+    </child>
+  </object>
+</interface>'''
+
+launchWindow(winName)
