@@ -1,7 +1,7 @@
 #Command prompt-based Toontown launcher script v1.2.3 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
 #This super epic script lets you log in at light speeds not previously known to mankind
 #Requirements: python 3.7, you have to put this file in your game folder
-#The other script, guiLauncher.py, is a pygubu-based version of this. They both use the same credentials.json to save accounts, so you can use them interchangably.
+#As of v1.3 (December 18, 2018), this script is no longer updated. I'm pretty sure it works bug free, but it's a bit clunky compared to the other one.
 
 import subprocess, os, sys, msvcrt
 try:
