@@ -1,8 +1,8 @@
-#Pygubu-based Toontown launcher script v1.3 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
+#Pygubu-based Toontown launcher script v1.3.1 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
 #This super epic script lets you log in pretty fast, and it's all self-contained within one little file
 #Requirements: You'll need python 3.7, and you'll have to put this file in your game folder
 
-import subprocess, os, sys, msvcrt, tkinter as tk
+import subprocess, time, os, sys, msvcrt, tkinter as tk, _thread as thread
 try:
 	import requests, win32ui, win32gui, win32con, win32com.shell.shell as shell, pygubu
 except:
@@ -12,11 +12,15 @@ except:
 	import requests, win32ui, win32gui, win32con, win32com.shell.shell as shell, pygubu
 	
 class Application:
-	def __init__(self, master, credentials, winName):
+	def __init__(self, master):
 		self.builder = builder = pygubu.Builder()
 		builder.add_from_string(xmlData)
 		self.mainwindow = builder.get_object(winName, master)
 		builder.connect_callbacks(self)
+		if game == 'C' and winName == "main":
+			thread.start_new_thread(popTracker, (self,))
+		if len(usernames) == 1:
+			self.builder.get_variable('acct0').set(True)
 	
 	def onGoClick(self):
 		accList = []
@@ -29,15 +33,14 @@ class Application:
 			win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
 			win32gui.SetForegroundWindow(cmdWindow)
 			self.mainwindow.master.destroy()
-			vb, rs = False, False
+			options = {'vb': False, 'rs': False, 'cl': False}
 			for a in accList:
 				if len(accList) - 1 == accList.index(a):
-					vb = not self.builder.get_variable('vb').get()
-					rs = self.builder.get_variable('rs').get()
+					options = {'vb': not self.builder.get_variable('vb').get(), 'rs': self.builder.get_variable('rs').get(), 'cl': self.builder.get_variable('cl').get()}
 				if game == 'C':
-					startCC(a, vb, rs)
+					startCC(a, options)
 				elif game == 'R':
-					startTTR(a, vb, rs)
+					startTTR(a, options)
 	
 	def onNAClick(self):
 		self.mainwindow.master.destroy()
@@ -56,10 +59,30 @@ class Application:
 			credentials.append(account)
 			with open('credentials.json', 'w') as f:
 				f.write(str(credentials))
+				
+	def onClCheck(self):
+		if self.builder.get_variable('cl').get():
+			self.builder.get_object('noVerbose').configure(state='disabled')
+			self.builder.get_variable('vb').set(False)
+			self.builder.get_object('restart').configure(state='disabled')
+			self.builder.get_variable('rs').set(False)
+		else:
+			self.builder.get_object('noVerbose').configure(state='normal')
+			self.builder.get_object('restart').configure(state='normal')
+			
+def popTracker(self):
+	while True:
+		url = 'https://corporateclash.net/api/v1/districts/'
+		r = requests.get(url).json()
+		population = 0
+		for a in r:
+			population += a[u'population']
+		self.builder.get_object('popTracker').configure(text='Population: ' + str(population))
+		time.sleep(10)
 
 def launchWindow(winName):
 	root = tk.Tk()
-	app = Application(root, credentials, winName)
+	app = Application(root)
 	if game == 'C':
 		winTitle = "Corporate Clash Launcher"
 	elif game == 'R':
@@ -75,26 +98,26 @@ def exitLauncher(message):
 	os.system("cls")
 	sys.exit()
 	
-def startCC(tc, vb, rs):
+def startCC(tc, options):
 	url = ('https://corporateclash.net/api/v1/login/' + tc[u'username'])
 	r = requests.post(url, json=tc)
 	if r.json()[u'reason'] == 1000 or r.json()[u'reason'] == 0:
 		print("Welcome back to Toontown, " + tc[u'username'] + "!")
 		os.environ["TT_PLAYCOOKIE"] = r.json()[u'token']
 		os.environ["TT_GAMESERVER"] = "gs.corporateclash.net"
-		if vb:
+		if options[u'vb'] and not options[u'cl']:
 			gw = subprocess.Popen(args="CorporateClash.exe")
-			spHandler(gw, tc, rs)
 		else:
 			gw = subprocess.Popen(args="CorporateClash.exe", creationflags=0x08000000)
+		if not options[u'cl']:
+			spHandler(gw, tc, options)
 		return True
 	else:
 		print("Login failed with error code " + str(r.json()[u'reason']) + ". (" + str(r.json()[u'friendlyreason']) + ")")
 		launchWindow(winName)
 		return False
 		
-def startTTR(tc, vb, rs):
-	import time
+def startTTR(tc, options):
 	url = ('https://www.toontownrewritten.com/api/login?format=json')
 	r = requests.post(url, json=tc)
 	response = r.json()
@@ -105,7 +128,7 @@ def startTTR(tc, vb, rs):
 		eta = response[u'eta']
 		while delayed:
 			print("You've been put into the queue. ETA: " + eta + " seconds", end='\r')
-			time.sleep(5)
+			time.sleep(3)
 			r = requests.post(url, json=queueToken)
 			response = r.json()
 			success = response[u'success']
@@ -118,32 +141,33 @@ def startTTR(tc, vb, rs):
 		print("Welcome back to Toontown, " + tc[u'username'] + "!")
 		os.environ["TTR_PLAYCOOKIE"] = r.json()[u'cookie']
 		os.environ["TTR_GAMESERVER"] = r.json()[u'gameserver']
-		if vb:
+		if options[u'vb'] and not options[u'cl']:
 			gw = subprocess.Popen(args="TTREngine.exe")
 		else:
 			gw = subprocess.Popen(args="TTREngine.exe", creationflags=0x08000000)
-		spHandler(gw, tc, vb, rs)
+		if not options[u'cl']:
+			spHandler(gw, tc, options)
 		return True
 	else:
 		print("Oof! Login failed with no error code.")
 		launchWindow(winName)
 		return False
 		
-def spHandler(gw, tc, vb, rs):
+def spHandler(gw, tc, options):
 	import time
-	if not vb:
+	if not options[u'vb']:
 		win32gui.ShowWindow(cmdWindow, win32con.SW_HIDE)
 	while True:
 		time.sleep(3)
 		poll = gw.poll()
 		if poll != None:
-			if not vb:
+			if not options[u'vb']:
 				win32gui.ShowWindow(cmdWindow, win32con.SW_NORMAL)
-			if rs:
+			if options[u'rs']:
 				if game == 'C':
-					startCC(tc, vb, True)
+					startCC(tc, options)
 				elif game == 'R':
-					startTTR(tc, vb, True)
+					startTTR(tc, options)
 			else:
 				launchWindow("main")
 				break
@@ -228,7 +252,7 @@ xmlData += '''
           <property name="row">0</property>
           <property name="sticky">n</property>
           <rows>
-            <row id="2">
+            <row id="3">
               <property name="minsize">0</property>
               <property name="pad">8</property>
             </row>
@@ -261,6 +285,21 @@ xmlData += '''
           </object>
         </child>
         <child>
+          <object class="tk.Checkbutton" id="closeLauncher">
+            <property name="command">onClCheck</property>
+            <property name="overrelief">flat</property>
+            <property name="overrelief">flat</property>
+            <property name="text" translatable="yes">Close on Launch</property>
+            <property name="variable">boolean:cl</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
           <object class="ttk.Button" id="goButton">
             <property name="command">onGoClick</property>
             <property name="text" translatable="yes">Launch Game</property>
@@ -268,9 +307,9 @@ xmlData += '''
               <property name="column">0</property>
               <property name="ipadx">20</property>
               <property name="ipady">10</property>
-              <property name="pady">5</property>
+              <property name="pady">10</property>
               <property name="propagate">True</property>
-              <property name="row">3</property>
+              <property name="row">4</property>
               <property name="sticky">s</property>
             </layout>
           </object>
@@ -283,11 +322,24 @@ xmlData += '''
               <property name="column">0</property>
               <property name="pady">0</property>
               <property name="propagate">True</property>
-              <property name="row">2</property>
+              <property name="row">3</property>
               <property name="sticky">s</property>
             </layout>
           </object>
-        </child>
+        </child>'''
+if game == 'C':
+	xmlData += '''
+        <child>
+          <object class="ttk.Label" id="popTracker">
+            <property name="text" translatable="yes">Getting population...</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">5</property>
+            </layout>
+          </object>
+        </child>'''
+xmlData += '''
       </object>
     </child>
   </object>
@@ -359,4 +411,5 @@ xmlData += '''
   </object>
 </interface>'''
 
+print(xmlData)
 launchWindow(winName)
