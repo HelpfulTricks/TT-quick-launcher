@@ -34,10 +34,10 @@ class Application:
 			win32gui.SetForegroundWindow(cmdWindow)
 			popWindowChecker = False
 			self.mainwindow.master.destroy()
-			options = {'vb': False, 'rs': False, 'cl': False}
+			options = {'vb': False, 'rs': False, 'cl': False, 'la': False}
 			for a in accList:
 				if len(accList) - 1 == accList.index(a):
-					options = {'vb': not self.builder.get_variable('vb').get(), 'rs': self.builder.get_variable('rs').get(), 'cl': self.builder.get_variable('cl').get()}
+					options = {'vb': not self.builder.get_variable('vb').get(), 'rs': self.builder.get_variable('rs').get(), 'cl': self.builder.get_variable('cl').get(), 'la': True}
 				if game == 'C':
 					startCC(a, options)
 				elif game == 'R':
@@ -112,7 +112,7 @@ def startCC(tc, options):
 			gw = subprocess.Popen(args="CorporateClash.exe")
 		else:
 			gw = subprocess.Popen(args="CorporateClash.exe", creationflags=0x08000000)
-		if not options[u'cl']:
+		if not options[u'cl'] and options[u'la']:
 			spHandler(gw, tc, options)
 		return True
 	else:
