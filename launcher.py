@@ -4,12 +4,12 @@
 
 import subprocess, time, os, sys, msvcrt, tkinter as tk, _thread as thread
 try:
-	import requests, win32ui, win32gui, win32con, win32com.shell.shell as shell, pygubu
+	import requests, win32gui, win32con, win32com.shell.shell as shell, pygubu
 except:
 	subprocess.check_call(["py", '-m', 'pip', 'install', 'requests'])
 	subprocess.check_call(["py", '-m', 'pip', 'install', 'pywin32'])
 	subprocess.check_call(["py", '-m', 'pip', 'install', 'pygubu'])
-	import requests, win32ui, win32gui, win32con, win32com.shell.shell as shell, pygubu
+	import requests, win32gui, win32con, win32com.shell.shell as shell, pygubu
 	
 class Application:
 	def __init__(self, master):
@@ -32,6 +32,7 @@ class Application:
 		if accList != []:
 			win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
 			win32gui.SetForegroundWindow(cmdWindow)
+			popWindowChecker = False
 			self.mainwindow.master.destroy()
 			options = {'vb': False, 'rs': False, 'cl': False}
 			for a in accList:
@@ -43,6 +44,7 @@ class Application:
 					startTTR(a, options)
 	
 	def onNAClick(self):
+		popWindowChecker = False
 		self.mainwindow.master.destroy()
 		launchWindow("newAccount")
 
@@ -71,15 +73,16 @@ class Application:
 			self.builder.get_object('restart').configure(state='normal')
 			
 def popTracker(self):
-	while True:
+	while popWindowChecker:
 		url = 'https://corporateclash.net/api/v1/districts/'
 		r = requests.get(url).json()
 		population = 0
 		for a in r:
 			population += a[u'population']
-		self.builder.get_object('popTracker').configure(text='Population: ' + str(population))
-		time.sleep(10)
-
+		if popWindowChecker:
+			self.builder.get_object('popTracker').configure(text='Population: ' + str(population))
+			time.sleep(10)
+			
 def launchWindow(winName):
 	root = tk.Tk()
 	app = Application(root)
@@ -328,6 +331,7 @@ xmlData += '''
           </object>
         </child>'''
 if game == 'C':
+	popWindowChecker = True
 	xmlData += '''
         <child>
           <object class="ttk.Label" id="popTracker">
@@ -411,5 +415,4 @@ xmlData += '''
   </object>
 </interface>'''
 
-print(xmlData)
 launchWindow(winName)
