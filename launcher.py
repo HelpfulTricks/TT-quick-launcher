@@ -1,4 +1,4 @@
-#Pygubu-based Toontown launcher script v1.3.3 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
+#Pygubu-based Toontown launcher script v1.3.4 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
 #This super epic script lets you log in pretty fast, and it's all self-contained within one little file
 #Requirements: You'll need python 3.7, and you'll have to put this file in your game folder
 
@@ -18,16 +18,20 @@ class Application:
 		self.mw = builder.get_object(wn, master)
 		builder.connect_callbacks(self)
 		if wn == "main":
-			globalSet('m', self.mw)
-			mainWindow.master.protocol("WM_DELETE_WINDOW", onMainClose)
+			if not hasCredentials:
+				self.mw.master.withdraw()
+			self.mw.master.protocol("WM_DELETE_WINDOW", onMainClose)
 			if game == 'C':
 				ptLabel = self.builder.get_object('popTracker')
 				thread.start_new_thread(popTracker, (self, ptLabel))
+			if len(usernames) == 1:
+				self.builder.get_variable('acct' + str(0)).set(True)
 		elif wn == "newAccount":
-			globalSet('n', self.mw)
-			naWindow.master.protocol("WM_DELETE_WINDOW", onNAClose)
-		if len(usernames) == 1:
-			self.builder.get_variable('acct0').set(True)
+			if hasCredentials:
+				self.mw.master.withdraw()
+				self.mw.master.protocol("WM_DELETE_WINDOW", onNAClose)
+			else:
+				self.mw.master.protocol("WM_DELETE_WINDOW", onMainClose)
 	
 	def onGoClick(self):
 		accList = []
@@ -39,7 +43,7 @@ class Application:
 		if accList != []:
 			win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
 			win32gui.SetForegroundWindow(cmdWindow)
-			mainWindow.master.withdraw()
+			mainWindow.mw.master.withdraw()
 			options = {'vb': False, 'rs': False, 'cl': False, 'la': False}
 			for a in accList:
 				if len(accList) - 1 == accList.index(a):
@@ -47,23 +51,25 @@ class Application:
 				startGame(a, options, mainWindow)
 	
 	def onNAClick(self):
-		mainWindow.master.withdraw()
-		launchWindow("newAccount")
+		mainWindow.mw.master.withdraw()
+		unhideWindow(naWindow)
 
 	def onNAGoClick(self):
 		account = {'username': self.builder.get_object('unField').get(), 'password': self.builder.get_object('passField').get()}
 		win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
 		win32gui.SetForegroundWindow(cmdWindow)
-		naWindow.master.withdraw()
-		if winName == "newAccount":
-			window = naWindow
-		elif winName == "main":
+		self.builder.get_object('passField').delete(0, 'end')
+		naWindow.mw.master.withdraw()
+		if hasCredentials:
 			window = mainWindow
+		else:
+			window = naWindow
 		t = startGame(account, {'vb': True, 'rs': False, 'cl': False, 'la': True}, window)
 		if t:
 			credentials.append(account)
 			with open('credentials.json', 'w') as f:
 				f.write(str(credentials))
+			sys.exit()
 				
 	def onClCheck(self):
 		if self.builder.get_variable('cl').get():
@@ -80,47 +86,35 @@ def onMainClose():
 
 def onNAClose():
 	unhideWindow(mainWindow)
-	naWindow.master.withdraw()
+	naWindow.mw.master.withdraw()
 
 def popTracker(self, ptLabel):
-	while ptLabel.winfo_exists():
-		url = 'https://corporateclash.net/api/v1/districts/'
-		r = requests.get(url).json()
-		population = 0
-		for a in r:
-			population += a[u'population']
-		self.builder.get_object('popTracker').configure(text='Population: ' + str(population))
-		time.sleep(10)
-	thread.exit()
-			
+	while True:
+		if ptLabel.winfo_viewable():
+			url = 'https://corporateclash.net/api/v1/districts/'
+			r = requests.get(url).json()
+			population = 0
+			for a in r:
+				population += a[u'population']
+			self.builder.get_object('popTracker').configure(text='Population: ' + str(population))
+			print("got")
+			time.sleep(10)
+		
 def launchWindow(wn):
-	if wn == "main" and not mainWindow == None:
-		unhideWindow(mainWindow)
-	elif wn == "newAccount" and not naWindow == None:
-		unhideWindow(naWindow)
-	else:
-		root = tk.Tk()
-		app = Application(root, wn)
-		if game == 'C':
-			root.title("Corporate Clash Launcher")
-		elif game == 'R':
-			root.title("Toontown Rewritten Launcher")
-		win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
-		root.iconbitmap("Launcher.exe")
-		root.mainloop()
+	root = tk.Tk()
+	if game == 'C':
+		root.title("Corporate Clash Launcher")
+	elif game == 'R':
+		root.title("Toontown Rewritten Launcher")
+	win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
+	root.iconbitmap("Launcher.exe")
+	app = Application(root, wn)
+	return app
 	
-def globalSet(c, window):
-	if c == 'm':
-		global mainWindow
-		mainWindow = window
-	if c == 'n':
-		global naWindow
-		naWindow = window
-
 def unhideWindow(window):
 	win32gui.ShowWindow(cmdWindow, win32con.SW_MINIMIZE)
-	window.master.update()
-	window.master.deiconify()
+	window.mw.master.update()
+	window.mw.master.deiconify()
 	
 def exitLauncher(message):
 	print(message)
@@ -149,7 +143,7 @@ def startGame(tc, options, window):
 			while success == "delayed":
 				print("You've been put into the queue. ETA: " + eta + " seconds", end='\r')
 				time.sleep(5)
-				r = requests.post(url, json=queueToken).json()
+				r = requests.post('https://www.toontownrewritten.com/api/login?format=json', json=queueToken).json()
 				success = r[u'success']
 				if success == "delayed":
 					eta = r[u'eta']
@@ -166,6 +160,7 @@ def startGame(tc, options, window):
 	else:
 		gw = subprocess.Popen(args=exe, creationflags=0x08000000)
 	if options[u'la'] and not options[u'cl']:
+		naWindow.builder.get_object('unField').delete(0, 'end')
 		spHandler(gw, tc, options, window)
 	elif options[u'cl']:
 		sys.exit()
@@ -199,19 +194,17 @@ def decGlobals():
 			exitLauncher("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
 	else:
 		exitLauncher("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
-	globals.extend([win32gui.GetForegroundWindow(), [], "", []])
+	globals.extend([win32gui.GetForegroundWindow(), [], True, []])
 	try:
 		globals[2] = eval(open('credentials.json', 'r').read())
-		globals[3] = ("main")
 		for i in globals[2]:
 			globals[4].append(i[u'username'])
 	except:
-		globals[3]=("newAccount")
+		globals[3] = False
+	globals.append(0)
 	return globals	
 
-game, cmdWindow, credentials, winName, usernames = decGlobals()
-row = 0
-
+game, cmdWindow, credentials, hasCredentials, usernames, row = decGlobals()
 xmlData = '''<?xml version='1.0' encoding='utf-8'?>
 <interface>
   <object class="ttk.Frame" id="main">
@@ -426,6 +419,6 @@ xmlData += '''
   </object>
 </interface>'''
 
-mainWindow = None
-naWindow = None
-launchWindow(winName)
+mainWindow = launchWindow("main")
+naWindow = launchWindow("newAccount")
+mainWindow.mw.master.mainloop()
