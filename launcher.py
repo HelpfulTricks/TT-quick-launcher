@@ -17,6 +17,7 @@ class Application:
 		builder.add_from_string(xmlData)
 		self.mainwindow = builder.get_object(winName, master)
 		builder.connect_callbacks(self)
+		popWindowChecker = True
 		if game == 'C' and winName == "main":
 			thread.start_new_thread(popTracker, (self,))
 		if len(usernames) == 1:
@@ -38,10 +39,7 @@ class Application:
 			for a in accList:
 				if len(accList) - 1 == accList.index(a):
 					options = {'vb': not self.builder.get_variable('vb').get(), 'rs': self.builder.get_variable('rs').get(), 'cl': self.builder.get_variable('cl').get(), 'la': True}
-				if game == 'C':
-					startCC(a, options)
-				elif game == 'R':
-					startTTR(a, options)
+				startGame(a, options)
 	
 	def onNAClick(self):
 		popWindowChecker = False
@@ -53,10 +51,7 @@ class Application:
 		win32gui.ShowWindow(cmdWindow,win32con.SW_NORMAL)
 		win32gui.SetForegroundWindow(cmdWindow)
 		self.mainwindow.master.destroy()
-		if game == 'C':
-			t = startCC(account, False, False)
-		elif game == 'R':
-			t = startTTR(account, False, False)
+		t = startGame(account, False, False)
 		if t:
 			credentials.append(account)
 			with open('credentials.json', 'w') as f:
@@ -82,6 +77,8 @@ def popTracker(self):
 		if popWindowChecker:
 			self.builder.get_object('popTracker').configure(text='Population: ' + str(population))
 			time.sleep(10)
+		else:
+			return
 			
 def launchWindow(winName):
 	root = tk.Tk()
@@ -101,58 +98,50 @@ def exitLauncher(message):
 	os.system("cls")
 	sys.exit()
 	
-def startCC(tc, options):
-	url = ('https://corporateclash.net/api/v1/login/' + tc[u'username'])
-	r = requests.post(url, json=tc)
-	if r.json()[u'reason'] == 1000 or r.json()[u'reason'] == 0:
+def startGame(tc, options):
+	if game == 'C':
+		url = ('https://corporateclash.net/api/v1/login/' + tc[u'username'])
+	if game == 'R':
+		url = ('https://www.toontownrewritten.com/api/login?format=json')
+	r = requests.post(url, json=tc).json()
+	if game == 'R':
+		success = r[u'success']
+		if success == "delayed":
+			queueToken = {'queueToken': r[u'queueToken']}
+			delayed = True
+			eta = r[u'eta']
+			while delayed:
+				print("You've been put into the queue. ETA: " + eta + " seconds", end='\r')
+				time.sleep(3)
+				r = requests.post(url, json=queueToken).json()
+				success = r[u'success']
+				if success == "true":
+					delayed = False
+				else:
+					eta = r[u'eta']
+	if (game == 'C' and (r[u'reason'] == 1000 or r[u'reason'] == 0)) or (game == 'R' and success == "true"):
+		if game == 'C':
+			os.environ["TT_PLAYCOOKIE"] = r[u'token']
+			os.environ["TT_GAMESERVER"] = "gs.corporateclash.net"
+			exe = "CorporateClash.exe"
+		if game == 'R':
+			print("You've been put into the queue. ETA: 0 seconds                       ")
+			os.environ["TTR_PLAYCOOKIE"] = r[u'cookie']
+			os.environ["TTR_GAMESERVER"] = r[u'gameserver']
+			exe = "TTREngine.exe"
 		print("Welcome back to Toontown, " + tc[u'username'] + "!")
-		os.environ["TT_PLAYCOOKIE"] = r.json()[u'token']
-		os.environ["TT_GAMESERVER"] = "gs.corporateclash.net"
 		if options[u'vb'] and not options[u'cl']:
-			gw = subprocess.Popen(args="CorporateClash.exe")
+			gw = subprocess.Popen(args=exe)
 		else:
-			gw = subprocess.Popen(args="CorporateClash.exe", creationflags=0x08000000)
+			gw = subprocess.Popen(args=exe, creationflags=0x08000000)
 		if not options[u'cl'] and options[u'la']:
 			spHandler(gw, tc, options)
 		return True
 	else:
-		print("Login failed with error code " + str(r.json()[u'reason']) + ". (" + str(r.json()[u'friendlyreason']) + ")")
-		launchWindow(winName)
-		return False
-		
-def startTTR(tc, options):
-	url = ('https://www.toontownrewritten.com/api/login?format=json')
-	r = requests.post(url, json=tc)
-	response = r.json()
-	success = response[u'success']
-	if success == "delayed":
-		queueToken = {'queueToken': response[u'queueToken']}
-		delayed = True
-		eta = response[u'eta']
-		while delayed:
-			print("You've been put into the queue. ETA: " + eta + " seconds", end='\r')
-			time.sleep(3)
-			r = requests.post(url, json=queueToken)
-			response = r.json()
-			success = response[u'success']
-			if success == "true":
-				delayed = False
-			else:
-				eta = response[u'eta']
-	if success == "true":
-		print("You've been put into the queue. ETA: 0 seconds")
-		print("Welcome back to Toontown, " + tc[u'username'] + "!")
-		os.environ["TTR_PLAYCOOKIE"] = r.json()[u'cookie']
-		os.environ["TTR_GAMESERVER"] = r.json()[u'gameserver']
-		if options[u'vb'] and not options[u'cl']:
-			gw = subprocess.Popen(args="TTREngine.exe")
-		else:
-			gw = subprocess.Popen(args="TTREngine.exe", creationflags=0x08000000)
-		if not options[u'cl']:
-			spHandler(gw, tc, options)
-		return True
-	else:
-		print("Oof! Login failed with no error code.")
+		if game == 'C':
+			print("Login failed with error code " + str(r[u'reason']) + ". (" + str(r[u'friendlyreason']) + ")")
+		if game == 'R':
+			print("Oof! Login failed, try again.")
 		launchWindow(winName)
 		return False
 		
@@ -167,10 +156,7 @@ def spHandler(gw, tc, options):
 			if not options[u'vb']:
 				win32gui.ShowWindow(cmdWindow, win32con.SW_NORMAL)
 			if options[u'rs']:
-				if game == 'C':
-					startCC(tc, options)
-				elif game == 'R':
-					startTTR(tc, options)
+				startGame(tc, options)
 			else:
 				launchWindow("main")
 				break
