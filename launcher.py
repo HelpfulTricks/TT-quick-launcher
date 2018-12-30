@@ -1,16 +1,10 @@
-#Pygubu-based Toontown launcher script v1.3.4 by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash)
-#This super epic script lets you log in pretty fast, and it's all self-contained within one little file
-#Requirements: You'll need python 3.7, and you'll have to put this file in your game folder
+#Pygubu-based Toontown launcher script by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash) 
+#Current Version: v1.3.5 | Last updated: December 30, 2018
+#This script lets you log in quickly and efficiently, with a couple other bells and whistles as well.
+#Requirements: You'll need python 3.7, and you'll have to put this file in your game folder. If you'd like to run the file straight from the python script, you also need to have the requests, pywin32, and pygubu libraries installed.
 
-import subprocess, time, os, sys, msvcrt, tkinter as tk, _thread as thread
-try:
-	import requests, win32gui, win32con, win32com.shell.shell as shell, pygubu
-except:
-	subprocess.check_call(["py", '-m', 'pip', 'install', 'requests'])
-	subprocess.check_call(["py", '-m', 'pip', 'install', 'pywin32'])
-	subprocess.check_call(["py", '-m', 'pip', 'install', 'pygubu'])
-	import requests, win32gui, win32con, win32com.shell.shell as shell, pygubu
-	
+import subprocess, time, os, sys, msvcrt, tkinter as tk, _thread as thread, requests, win32gui, win32con, win32com.shell.shell as shell, pygubu
+
 class Application:
 	def __init__(self, master, wn):
 		self.builder = builder = pygubu.Builder()
@@ -97,7 +91,6 @@ def popTracker(self, ptLabel):
 			for a in r:
 				population += a[u'population']
 			self.builder.get_object('popTracker').configure(text='Population: ' + str(population))
-			print("got")
 			time.sleep(10)
 		
 def launchWindow(wn):
@@ -181,30 +174,28 @@ def spHandler(gw, tc, options, window):
 			else:
 				unhideWindow(window)
 				break
-	
-def decGlobals():
-	globals = []
-	p = os.path.split(os.path.normpath(sys.path[0]))[1]
-	if p == "Corporate Clash":
-		globals.append('C')
-	elif p == "Toontown Rewritten":
-		if shell.IsUserAnAdmin():
-			globals.append('R')
-		else:
-			exitLauncher("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
-	else:
-		exitLauncher("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
-	globals.extend([win32gui.GetForegroundWindow(), [], True, []])
-	try:
-		globals[2] = eval(open('credentials.json', 'r').read())
-		for i in globals[2]:
-			globals[4].append(i[u'username'])
-	except:
-		globals[3] = False
-	globals.append(0)
-	return globals	
 
-game, cmdWindow, credentials, hasCredentials, usernames, row = decGlobals()
+if os.path.split(os.path.dirname(os.path.abspath(__file__)))[1] == "Corporate Clash":
+	game = ('C')
+elif os.path.split(os.path.dirname(os.path.abspath(__file__)))[1] == "Toontown Rewritten":
+	if shell.IsUserAnAdmin():
+		game = ('R')
+	else:
+		exitLauncher("This script must be run as an administrator in order to launch Toontown Rewritten. Press any key to exit...")
+else:
+	exitLauncher("Please put this file in your Corporate Clash or Toontown Rewritten folder. Press any key to exit...")
+cmdWindow = win32gui.GetForegroundWindow()
+credentials = []
+hasCredentials = True
+usernames = []
+try:
+	credentials = eval(open('credentials.json', 'r').read())
+	for i in credentials:
+		usernames.append(i[u'username'])
+except:
+	hasCredentials = False
+row = 0
+
 xmlData = '''<?xml version='1.0' encoding='utf-8'?>
 <interface>
   <object class="ttk.Frame" id="main">
