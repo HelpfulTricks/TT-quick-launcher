@@ -190,7 +190,7 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.naButton.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\naNormal.png\"/></p></body></html>"))
 		self.launcherBG.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\launcherBG.png\"/></p></body></html>"))
 		self.popCount.setText(_translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
-		self.popTrackerActive, self.popThread, self.popWait, self.gpWait = True, threading.Thread(name="popThread",target=popTracker,args=(self, self.popCount,)), threading.Event(), {}
+		self.popTrackerActive, self.popThread, self.popWait, self.gpWait, self.toonstepMode, self.rf, self.nacg, self.natc, self.wd = True, threading.Thread(name="popThread",target=popTracker,args=(self, self.popCount,)), threading.Event(), {}, False, {}, '', {}, os.path.dirname(os.path.realpath(__file__))
 		self.popThread.start()
 		if cfg[u'game'] == 'C':
 			self.logo.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ccLogo.png\"/></p></body></html>"))
@@ -279,13 +279,16 @@ class mainWindow(QtWidgets.QMainWindow):
 		naWindow.show()
 		
 	def naGoClick(self):
-		cg = cfg[u'game']
-		tc = {'username': self.unField.text(), 'password': self.pwField.text()}
-		if cg == 'C':
+		if self.toonstepMode == False:				
+			self.nacg = cfg[u'game']
+			self.natc = {'username': self.unField.text(), 'password': self.pwField.text()}
+		self.gpWait[self.natc[u'username']] = threading.Event()
+		if self.nacg == 'C':
+			os.chdir(cfg[u'clashDir'])
 			exe = "CorporateClash.exe"
-			r = requests.post('https://corporateclash.net/api/v1/login/' + tc[u'username'], json=tc).json()
+			r = requests.post('https://corporateclash.net/api/v1/login/' + self.natc[u'username'], json=self.natc).json()
 			if r[u'reason'] == 1000 or r[u'reason'] == 0:
-				cfg[u'clashAccounts'].append(tc)
+				cfg[u'clashAccounts'].append(self.natc)
 				cu.append(self.unField.text())
 				item = QtWidgets.QListWidgetItem()
 				icon = QtGui.QIcon()
@@ -295,26 +298,40 @@ class mainWindow(QtWidgets.QMainWindow):
 				self.cAccWidget.addItem(item)
 				self.cub.append(item)
 				item.setText(QtCore.QCoreApplication.translate("Form", self.unField.text()))
+				self.unField.setText("")
+				self.pwField.setText("")
 				naWindow.hide()
 			else:
 				print("Invalid login details")
-		naWait = threading.Event()
-		if cg == 'R':
+		elif self.nacg == 'R':
+			os.chdir(cfg[u'ttrDir'])
 			exe = "TTREngine.exe"
-			r = requests.post('https://www.toontownrewritten.com/api/login?format=json', json=tc).json()
+			if self.toonstepMode:
+				self.rf[u'appToken'] = self.pwField.text()
+				r = requests.post('https://www.toontownrewritten.com/api/login?format=json', json=self.rf).json()
+			else:
+				r = requests.post('https://www.toontownrewritten.com/api/login?format=json', json=self.natc).json()
 			success = r[u'success']
+			print(success)
+			if success == "partial":
+				self.rf = {'appToken': "", 'authToken': r[u'responseToken']}
+				self.unField.setPlaceholderText(QtCore.QCoreApplication.translate("Form", "--------------------"))
+				self.pwField.setPlaceholderText(QtCore.QCoreApplication.translate("Form", "2FA or ToonStep Code"))
+				self.unField.setText("")
+				self.pwField.setText("")
+				self.toonstepMode = True
 			if success == "delayed":
 				queueToken = {'queueToken': r[u'queueToken']}
 				eta = r[u'eta']
 				while success == "delayed":
 					print("You've been put into the queue. ETA: " + eta + " seconds", end='\r')
-					naWait.wait(timeout=5)
+					self.gpWait[self.natc[u'username']].wait(timeout=5)
 					r = requests.post('https://www.toontownrewritten.com/api/login?format=json', json=queueToken).json()
 					success = r[u'success']
 					if success == "delayed":
 						eta = r[u'eta']
 			if success == "true":
-				cfg[u'ttrAccounts'].append(tc)
+				cfg[u'ttrAccounts'].append(self.natc)
 				ru.append(self.unField.text())
 				item = QtWidgets.QListWidgetItem()
 				icon = QtGui.QIcon()
@@ -324,18 +341,24 @@ class mainWindow(QtWidgets.QMainWindow):
 				self.rAccWidget.addItem(item)
 				self.rub.append(item)
 				item.setText(QtCore.QCoreApplication.translate("Form", self.unField.text()))
+				self.toonstepMode = False
+				self.unField.setPlaceholderText(QtCore.QCoreApplication.translate("Form", "Username"))
+				self.pwField.setPlaceholderText(QtCore.QCoreApplication.translate("Form", "Password"))
+				self.unField.setText("")
+				self.pwField.setText("")
 				naWindow.hide()
 
 	def minClick(self):
 		window.showMinimized()
 		
 	def onClose(self):
+		os.chdir(self.wd)
 		window.hide()
 		self.popTrackerActive = False
 		with open('launcherConfig.json', 'w') as f:
 			f.write(str(cfg))
 		for e in self.gpWait:
-			e.set()
+			self.gpWait[e].set()
 		self.popWait.set()
 		for t in threading.enumerate():
 			if not (t.getName() == "MainThread"):
@@ -390,17 +413,20 @@ class mainWindow(QtWidgets.QMainWindow):
 			opBox.setIcon(icon)
 
 def popTracker(self, popCount):
+	url = 'https://corporateclash.net/api/v1/districts/'
 	while True:
-		if self.popTrackerActive:
-			url = 'https://corporateclash.net/api/v1/districts/'
-			r = requests.get(url).json()
-			population = 0
-			for a in r:
-				population += a[u'population']
-			popCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Population: " + str(population) + "</span></p></body></html>"))
-			self.popWait.wait(timeout=10)
-		else:
-			break
+		try:
+			if self.popTrackerActive:
+				r = requests.get(url).json()
+				population = 0
+				for a in r:
+					population += a[u'population']
+				popCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Population: " + str(population) + "</span></p></body></html>"))
+				self.popWait.wait(timeout=10)
+			else:
+				break
+		except:
+			pass
 	
 def startGame(tc, la, self):
 	cg = cfg[u'game']
