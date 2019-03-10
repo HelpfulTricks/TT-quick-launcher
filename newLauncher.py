@@ -1,7 +1,7 @@
 #PyQt-based Toontown launcher script by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash) 
-#Current Version: v1.4 | Last updated: January PUT SOMETHING HERE PLEASE PLEASE PLEASE, 2019
+#Current Version: v1.4-rc3 | Last updated: March 10, 2019
 #This script lets you log in quickly and efficiently, with a couple other bells and whistles as well.
-#Requirements: You'll need python 3.7, and you'll have to put this file in your game folder. If you'd like to run the file straight from the python script, you also need to have the requests, pywin32, and pygubu libraries installed.
+#Requirements: You just need to put the .exe file in your game folder. If you'd like to run the file straight from the python script, you'll need python 3.7, and you also need to have the requests, pywin32, and pygubu libraries installed.
 
 import subprocess, os, sys, threading, requests, win32api, win32gui, win32com.shell.shell as shell
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -190,7 +190,7 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.naButton.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\naNormal.png\"/></p></body></html>"))
 		self.launcherBG.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\launcherBG.png\"/></p></body></html>"))
 		self.popCount.setText(_translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
-		self.popTrackerActive, self.popThread, self.popWait, self.gpWait, self.toonstepMode, self.rf, self.nacg, self.natc, self.wd = True, threading.Thread(name="popThread",target=popTracker,args=(self, self.popCount,)), threading.Event(), {}, False, {}, '', {}, os.path.dirname(os.path.realpath(__file__))
+		self.popTrackerActive, self.popThread, self.popWait, self.gpWait, self.toonstepMode, self.rf, self.nacg, self.natc, self.wd = True, threading.Thread(name="popThread",target=popTracker,args=(self,)), threading.Event(), {}, False, {}, '', {}, os.path.dirname(os.path.realpath(__file__))
 		self.popThread.start()
 		if cfg[u'game'] == 'C':
 			self.logo.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ccLogo.png\"/></p></body></html>"))
@@ -273,7 +273,6 @@ class mainWindow(QtWidgets.QMainWindow):
 			self.logo.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ccLogo.png\"/></p></body></html>"))
 			self.logo.setGeometry(QtCore.QRect(375, 110, 201, 100))
 			self.logoHitbox.setGeometry(QtCore.QRect(375, 110, 201, 100))
-		print(clickedUsers)
 
 	def naClick(self):
 		naWindow.show()
@@ -312,7 +311,6 @@ class mainWindow(QtWidgets.QMainWindow):
 			else:
 				r = requests.post('https://www.toontownrewritten.com/api/login?format=json', json=self.natc).json()
 			success = r[u'success']
-			print(success)
 			if success == "partial":
 				self.rf = {'appToken': "", 'authToken': r[u'responseToken']}
 				self.unField.setPlaceholderText(QtCore.QCoreApplication.translate("Form", "--------------------"))
@@ -359,7 +357,6 @@ class mainWindow(QtWidgets.QMainWindow):
 			f.write(str(cfg))
 		for e in self.gpWait:
 			self.gpWait[e].set()
-		self.popWait.set()
 		for t in threading.enumerate():
 			if not (t.getName() == "MainThread"):
 				t.join()
@@ -412,21 +409,28 @@ class mainWindow(QtWidgets.QMainWindow):
 				icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbChecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 			opBox.setIcon(icon)
 
-def popTracker(self, popCount):
+def popTracker(self):
 	url = 'https://corporateclash.net/api/v1/districts/'
 	while True:
-		try:
-			if self.popTrackerActive:
-				r = requests.get(url).json()
-				population = 0
-				for a in r:
-					population += a[u'population']
-				popCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Population: " + str(population) + "</span></p></body></html>"))
-				self.popWait.wait(timeout=10)
+		if self.popTrackerActive:
+			if cfg[u'game'] == 'C':
+				try:
+					r = requests.get(url).json()
+					population = 0
+					for a in r:
+						population += a[u'population']
+					self.popCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Population: " + str(population) + "</span></p></body></html>"))
+					for i in range(0, 20):
+						if self.popTrackerActive:
+							self.popWait.wait(timeout=0.5)
+						else:
+							break
+				except:
+					pass
 			else:
-				break
-		except:
-			pass
+				self.popCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
+		else:
+			break
 	
 def startGame(tc, la, self):
 	cg = cfg[u'game']
@@ -481,9 +485,8 @@ def startGame(tc, la, self):
 				if cg == 'C':
 					self.cub[cu.index(tc[u'username'])].setFlags(QtCore.Qt.ItemIsEnabled)
 				elif cg == 'R':
-					self.cub[ru.index(tc[u'username'])].setFlags(QtCore.Qt.ItemIsEnabled)
+					self.rub[ru.index(tc[u'username'])].setFlags(QtCore.Qt.ItemIsEnabled)
 				clickedUsers.append(tc[u'username'])
-			self.gpWait[tc[u'username']].set()
 			break
 	
 def assetsPath():
@@ -532,4 +535,5 @@ clickedUsers, clickedOptions = [], {'vb': False, 'rs': False, 'cl': False}
 
 ui.setupUi(window, naWindow)
 window.show()
-sys.exit(app.exec_())
+app.exec_()
+ui.onClose()
