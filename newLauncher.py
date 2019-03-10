@@ -1,7 +1,17 @@
-#PyQt-based Toontown launcher script by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash) 
-#Current Version: v1.4-rc3 | Last updated: March 10, 2019
-#This script lets you log in quickly and efficiently, with a couple other bells and whistles as well.
-#Requirements: You just need to put the .exe file in your game folder. If you'd like to run the file straight from the python script, you'll need python 3.7, and you also need to have the requests, pywin32, and pygubu libraries installed.
+'''
+PyQt-based Toontown launcher script by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash) 
+Current Version: v1.4-rc4 | Last updated: March 10, 2019
+This script lets you log in quickly and efficiently, with a couple other bells and whistles as well.
+Requirements: You just need to put the .exe file in your game folder. If you'd like to run the file straight from the python script, you'll need python 3.7, and you also need to have the requests, pywin32, and pygubu libraries installed.
+
+TO-DO LIST FOR v1.4:
+- Make 2FA/ToonStep look nicer
+- Implement proper "clicked" and "hovered" versions of buttons
+- Allow the window to be moved around
+- Implement proper window style for New Account window
+- Find a way to implement custom command prompts for each game window and remove the launcher's command prompt
+'''
+
 
 import subprocess, os, sys, threading, requests, win32api, win32gui, win32com.shell.shell as shell
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -36,17 +46,19 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.rAccWidget.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.rAccWidget.setObjectName("rAccWidget")
 		self.cub, self.rub = [], []
-		icon = QtGui.QIcon()
-		icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbUnchecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+		self.ucIcon = QtGui.QIcon()
+		self.ucIcon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbUnchecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+		self.chIcon = QtGui.QIcon()
+		self.chIcon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbChecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 		for i in cu:
 			item = QtWidgets.QListWidgetItem()
-			item.setIcon(icon)
+			item.setIcon(self.ucIcon)
 			item.setFlags(QtCore.Qt.ItemIsEnabled)
 			self.cAccWidget.addItem(item)
 			self.cub.append(self.cAccWidget.item(cu.index(i)))
 		for i in ru:
 			item = QtWidgets.QListWidgetItem()
-			item.setIcon(icon)
+			item.setIcon(self.ucIcon)
 			item.setFlags(QtCore.Qt.ItemIsEnabled)
 			self.rAccWidget.addItem(item)
 			self.rub.append(self.rAccWidget.item(ru.index(i)))
@@ -70,15 +82,15 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.optionsWidget.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.optionsWidget.setObjectName("optionsWidget")
 		item = QtWidgets.QListWidgetItem()
-		item.setIcon(icon)
+		item.setIcon(self.ucIcon)
 		item.setFlags(QtCore.Qt.ItemIsEnabled)
 		self.optionsWidget.addItem(item)
 		item = QtWidgets.QListWidgetItem()
-		item.setIcon(icon)
+		item.setIcon(self.ucIcon)
 		item.setFlags(QtCore.Qt.ItemIsEnabled)
 		self.optionsWidget.addItem(item)
 		item = QtWidgets.QListWidgetItem()
-		item.setIcon(icon)
+		item.setIcon(self.ucIcon)
 		item.setFlags(QtCore.Qt.ItemIsEnabled)
 		self.optionsWidget.addItem(item)
 		self.optionsLabel = QtWidgets.QLabel(Form)
@@ -190,7 +202,7 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.naButton.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\naNormal.png\"/></p></body></html>"))
 		self.launcherBG.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\launcherBG.png\"/></p></body></html>"))
 		self.popCount.setText(_translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
-		self.popTrackerActive, self.popThread, self.popWait, self.gpWait, self.toonstepMode, self.rf, self.nacg, self.natc, self.wd = True, threading.Thread(name="popThread",target=popTracker,args=(self,)), threading.Event(), {}, False, {}, '', {}, os.path.dirname(os.path.realpath(__file__))
+		self.popTrackerActive, self.popThread, self.popWait, self.gpWait, self.toonstepMode, self.rf, self.nacg, self.natc = True, threading.Thread(name="popThread",target=popTracker,args=(self,)), threading.Event(), {}, False, {}, '', {}
 		self.popThread.start()
 		if cfg[u'game'] == 'C':
 			self.logo.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ccLogo.png\"/></p></body></html>"))
@@ -229,23 +241,21 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.naButton.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\naNormal.png\"/><img src=\"" + assetsPath() + "\\naNormal.png\"/></p></body></html>"))
 		
 	def pbClick(self):
-		while clickedUsers != []:
+		for u in clickedUsers:
 			la = False
-			if len(clickedUsers) == 1:
+			if u == clickedUsers[0]:
 				la = True
 			if cfg[u'game'] == 'C':
-				for a in cfg[u'clashAccounts']:
-					if a[u'username'] == clickedUsers[0]:
-						c = a
-				self.cAccWidget.item(cu.index(clickedUsers[0])).setFlags(QtCore.Qt.NoItemFlags)
+				tcfg = cfg[u'clashAccounts']
+				button = self.cAccWidget.item(cu.index(u))
 			elif cfg[u'game'] == 'R':
-				for a in cfg[u'ttrAccounts']:
-					if a[u'username'] == clickedUsers[0]:
-						c = a
-				self.rAccWidget.item(ru.index(clickedUsers[0])).setFlags(QtCore.Qt.NoItemFlags)
-			gameThread = threading.Thread(name=clickedUsers[0],target=startGame,args=(c, la, self,))
+				tcfg = cfg[u'ttrAccounts']
+				button = self.rAccWidget.item(ru.index(u))
+			for a in tcfg:
+				if a[u'username'] == u:
+					c = a
+			gameThread = threading.Thread(name=u,target=startGame,args=(c, la, self, button,))
 			gameThread.start()
-			clickedUsers.remove(clickedUsers[0])
 			
 	def gameChange(self):
 		global cfg, bothCU, clickedUsers
@@ -290,9 +300,7 @@ class mainWindow(QtWidgets.QMainWindow):
 				cfg[u'clashAccounts'].append(self.natc)
 				cu.append(self.unField.text())
 				item = QtWidgets.QListWidgetItem()
-				icon = QtGui.QIcon()
-				icon.addPixmap(QtGui.QPixmap("assets/cbUnchecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-				item.setIcon(icon)
+				item.setIcon(self.ucIcon)
 				item.setFlags(QtCore.Qt.ItemIsEnabled)
 				self.cAccWidget.addItem(item)
 				self.cub.append(item)
@@ -332,9 +340,7 @@ class mainWindow(QtWidgets.QMainWindow):
 				cfg[u'ttrAccounts'].append(self.natc)
 				ru.append(self.unField.text())
 				item = QtWidgets.QListWidgetItem()
-				icon = QtGui.QIcon()
-				icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbUnchecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-				item.setIcon(icon)
+				item.setIcon(self.ucIcon)
 				item.setFlags(QtCore.Qt.ItemIsEnabled)
 				self.rAccWidget.addItem(item)
 				self.rub.append(item)
@@ -350,7 +356,7 @@ class mainWindow(QtWidgets.QMainWindow):
 		window.showMinimized()
 		
 	def onClose(self):
-		os.chdir(self.wd)
+		os.chdir(wd)
 		window.hide()
 		self.popTrackerActive = False
 		with open('launcherConfig.json', 'w') as f:
@@ -366,14 +372,10 @@ class mainWindow(QtWidgets.QMainWindow):
 		if unBox.flags() == QtCore.Qt.ItemIsEnabled:
 			username = self.current[self.currentUB.index(unBox)]
 			if username in clickedUsers:
-				icon = QtGui.QIcon()
-				icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbUnchecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-				unBox.setIcon(icon)
+				unBox.setIcon(self.ucIcon)
 				clickedUsers.remove(username)
 			else:
-				icon = QtGui.QIcon()
-				icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbChecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-				unBox.setIcon(icon)
+				unBox.setIcon(self.chIcon)
 				clickedUsers.append(username)
 	
 	def optionClicked(self, opBox):
@@ -394,20 +396,16 @@ class mainWindow(QtWidgets.QMainWindow):
 				else:
 					clickedOptions[u'vb'] = False
 					clickedOptions[u'rs'] = False
-					icon = QtGui.QIcon()
-					icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbUnchecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 					self.vbButton.setFlags(QtCore.Qt.NoItemFlags)
-					self.vbButton.setIcon(icon)
+					self.vbButton.setIcon(self.ucIcon)
 					self.rsButton.setFlags(QtCore.Qt.NoItemFlags)
-					self.rsButton.setIcon(icon)
-					icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbChecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-					self.clButton.setIcon(icon)
+					self.rsButton.setIcon(self.ucIcon)
+					self.clButton.setIcon(self.chIcon)
 			icon = QtGui.QIcon()
 			if option:
-				icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbUnchecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+				opBox.setIcon(self.ucIcon)
 			else:
-				icon.addPixmap(QtGui.QPixmap(assetsPath() + "\\cbChecked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-			opBox.setIcon(icon)
+				opBox.setIcon(self.chIcon)
 
 def popTracker(self):
 	url = 'https://corporateclash.net/api/v1/districts/'
@@ -432,7 +430,7 @@ def popTracker(self):
 		else:
 			break
 	
-def startGame(tc, la, self):
+def startGame(tc, la, self, button):
 	cg = cfg[u'game']
 	self.gpWait[tc[u'username']] = threading.Event()
 	if cg == 'C':
@@ -444,8 +442,8 @@ def startGame(tc, la, self):
 			os.environ["TT_GAMESERVER"] = "gs.corporateclash.net"
 		else:
 			print("Login failed with error code " + str(r[u'reason']) + ". (" + str(r[u'friendlyreason']) + ")")
-			self.cAccWidget.item(cu.index(tc[u'username'])).setFlags(QtCore.Qt.ItemIsEnabled)
-			clickedUsers.append(tc[u'username'])
+			button.setFlags(QtCore.Qt.ItemIsEnabled)
+			return
 	if cg == 'R':
 		os.chdir(cfg[u'ttrDir'])
 		exe = "TTREngine.exe"
@@ -466,8 +464,10 @@ def startGame(tc, la, self):
 			os.environ["TTR_GAMESERVER"] = r[u'gameserver']
 		else:
 			print("Oof! Login failed, try again.")
-			self.rAccWidget.item(ru.index(tc[u'username'])).setFlags(QtCore.Qt.ItemIsEnabled)
-			clickedUsers.append(tc[u'username'])
+			button.setFlags(QtCore.Qt.ItemIsEnabled)
+			return
+	button.setFlags(QtCore.Qt.NoItemFlags)
+	clickedUsers.remove(tc[u'username'])
 	print("Welcome back to Toontown, " + tc[u'username'] + "!								")
 	if not clickedOptions[u'vb'] and not clickedOptions[u'cl'] and la:
 		gw = subprocess.Popen(args=exe)
@@ -480,23 +480,24 @@ def startGame(tc, la, self):
 		poll = gw.poll()
 		if poll != None:
 			if clickedOptions[u'rs']:
-				startGame(tc, True, self)
+				startGame(tc, True, self, button)
 			else:
 				if cg == 'C':
-					self.cub[cu.index(tc[u'username'])].setFlags(QtCore.Qt.ItemIsEnabled)
+					button.setFlags(QtCore.Qt.ItemIsEnabled)
 				elif cg == 'R':
-					self.rub[ru.index(tc[u'username'])].setFlags(QtCore.Qt.ItemIsEnabled)
+					button.setFlags(QtCore.Qt.ItemIsEnabled)
 				clickedUsers.append(tc[u'username'])
 			break
 	
 def assetsPath():
+	os.chdir(wd)
 	try:
 		base_path = sys._MEIPASS
 	except:
 		base_path = os.path.abspath(".")
 	return str(os.path.join(base_path, "assets"))
 
-app, dirWindow, window, naWindow, ui = QtWidgets.QApplication(sys.argv), QtWidgets.QDialog(), QtWidgets.QDialog(), QtWidgets.QDialog(), mainWindow()	
+app, dirWindow, window, naWindow, ui, wd = QtWidgets.QApplication(sys.argv), QtWidgets.QDialog(), QtWidgets.QDialog(), QtWidgets.QDialog(), mainWindow(), os.path.dirname(os.path.realpath(__file__))
 try:
 	cfg = eval(open('launcherConfig.json', 'r').read())
 except:
