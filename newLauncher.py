@@ -466,8 +466,11 @@ def startGame(tc, la, self, button):
 			print("Oof! Login failed, try again.")
 			button.setFlags(QtCore.Qt.ItemIsEnabled)
 			return
-	button.setFlags(QtCore.Qt.NoItemFlags)
-	clickedUsers.remove(tc[u'username'])
+	try:
+		button.setFlags(QtCore.Qt.NoItemFlags)
+		clickedUsers.remove(tc[u'username'])
+	except:
+		pass
 	print("Welcome back to Toontown, " + tc[u'username'] + "!								")
 	if not clickedOptions[u'vb'] and not clickedOptions[u'cl'] and la:
 		gw = subprocess.Popen(args=exe)
