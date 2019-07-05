@@ -1,17 +1,15 @@
 '''
 PyQt-based Toontown launcher script by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash) 
-Current Version: v1.4-rc4 | Last updated: March 10, 2019
+Current Version: v1.4-rc5 | Last updated: July 4, 2019
 This script lets you log in quickly and efficiently, with a couple other bells and whistles as well.
 Requirements: You just need to put the .exe file in your game folder. If you'd like to run the file straight from the python script, you'll need python 3.7, and you also need to have the requests, pywin32, and pygubu libraries installed.
 
 TO-DO LIST FOR v1.4:
 - Make 2FA/ToonStep look nicer
-- Implement proper "clicked" and "hovered" versions of buttons
-- Allow the window to be moved around
 - Implement proper window style for New Account window
 - Find a way to implement custom command prompts for each game window and remove the launcher's command prompt
+- Clean up setupUi and retranslateUi functions
 '''
-
 
 import subprocess, os, sys, threading, requests, win32api, win32gui, win32com.shell.shell as shell
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -20,28 +18,25 @@ class mainWindow(QtWidgets.QMainWindow):
 	def setupUi(self, Form, FormTwo):
 		Form.setObjectName("Form")
 		Form.setEnabled(True)
-		Form.resize(701, 648)
-		Form.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-		Form.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+		Form.resize(540, 460)
+		Form.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint)
+		Form.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
+		Form.setWindowFlags(QtCore.Qt.MSWindowsFixedSizeDialogHint)
 		Form.setStyleSheet("background:transparent;")
 		self.playButton = QtWidgets.QLabel(Form)
-		self.playButton.setGeometry(QtCore.QRect(76, 327, 271, 231))
 		self.playButton.setObjectName("playButton")
 		QtGui.QFontDatabase.addApplicationFont(assetsPath() + "\\Impress.ttf")
 		self.launcherBG = QtWidgets.QLabel(Form)
-		self.launcherBG.setGeometry(QtCore.QRect(40, 50, 681, 531))
 		self.launcherBG.setObjectName("launcherBG")
 		self.launcherBG.raise_()
 		font = QtGui.QFont()
 		font.setFamily("Impress BT")
 		font.setPointSize(12)
 		self.cAccWidget = QtWidgets.QListWidget(Form)
-		self.cAccWidget.setGeometry(QtCore.QRect(90, 144, 241, 233))
 		self.cAccWidget.setFont(font)
 		self.cAccWidget.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.cAccWidget.setObjectName("cAccWidget")
 		self.rAccWidget = QtWidgets.QListWidget(Form)
-		self.rAccWidget.setGeometry(QtCore.QRect(90, 144, 241, 233))
 		self.rAccWidget.setFont(font)
 		self.rAccWidget.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.rAccWidget.setObjectName("rAccWidget")
@@ -71,12 +66,10 @@ class mainWindow(QtWidgets.QMainWindow):
 			self.currentUB = self.rub
 			self.cAccWidget.hide()
 		self.accLabel = QtWidgets.QLabel(Form)
-		self.accLabel.setGeometry(QtCore.QRect(80, 87, 261, 51))
 		font.setPointSize(18)
 		self.accLabel.setFont(font)
 		self.accLabel.setObjectName("accLabel")
 		self.optionsWidget = QtWidgets.QListWidget(Form)
-		self.optionsWidget.setGeometry(QtCore.QRect(360, 431, 231, 91))
 		font.setPointSize(12)
 		self.optionsWidget.setFont(font)
 		self.optionsWidget.setFrameShape(QtWidgets.QFrame.NoFrame)
@@ -94,40 +87,22 @@ class mainWindow(QtWidgets.QMainWindow):
 		item.setFlags(QtCore.Qt.ItemIsEnabled)
 		self.optionsWidget.addItem(item)
 		self.optionsLabel = QtWidgets.QLabel(Form)
-		self.optionsLabel.setGeometry(QtCore.QRect(360, 380, 231, 51))
 		font.setPointSize(18)
 		self.optionsLabel.setFont(font)
 		self.optionsLabel.setObjectName("optionsLabel")
 		self.naButton = QtWidgets.QLabel(Form)
-		self.naButton.setGeometry(QtCore.QRect(356, 192, 240, 240))
 		self.naButton.setObjectName("naButton")
 		self.naButton.setMouseTracking(True)
 		self.popCount = QtWidgets.QLabel(Form)
-		self.popCount.setGeometry(QtCore.QRect(360, 213, 231, 31))
 		font.setPointSize(12)
 		self.popCount.setFont(font)
 		self.popCount.setObjectName("popCount")
 		self.logo = QtWidgets.QLabel(Form)
-		self.logo.setGeometry(QtCore.QRect(375, 110, 201, 100))
 		self.logo.setObjectName("logo")
-		self.exitButton = QtWidgets.QLabel(Form)
-		self.exitButton.setGeometry(QtCore.QRect(540, 30, 71, 71))
-		self.exitButton.setObjectName("exitButton")
-		self.minButton = QtWidgets.QLabel(Form)
-		self.minButton.setGeometry(QtCore.QRect(480, 30, 71, 71))
-		self.minButton.setObjectName("minButton")
 		self.naHitbox = QtWidgets.QPushButton(Form)
-		self.naHitbox.setGeometry(QtCore.QRect(360, 260, 231, 111))
 		self.naHitbox.setObjectName("naHitbox")
 		self.pbHitbox = QtWidgets.QPushButton(Form)
-		self.pbHitbox.setGeometry(QtCore.QRect(90, 400, 241, 121))
 		self.pbHitbox.setObjectName("pbHitbox")
-		self.exitHitbox = QtWidgets.QPushButton(Form)
-		self.exitHitbox.setGeometry(QtCore.QRect(540, 30, 71, 71))
-		self.exitHitbox.setObjectName("exitHitbox")
-		self.minHitbox = QtWidgets.QPushButton(Form)
-		self.minHitbox.setGeometry(QtCore.QRect(480, 30, 71, 71))
-		self.minHitbox.setObjectName("minHitbox")
 		FormTwo.setObjectName("Form")
 		FormTwo.setEnabled(True)
 		FormTwo.resize(311, 221)
@@ -141,7 +116,6 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.unField.setObjectName("unField")
 		self.pwField = QtWidgets.QLineEdit(FormTwo)
 		self.pwField.setGeometry(QtCore.QRect(40, 90, 231, 41))
-		font.setPointSize(14)
 		self.pwField.setFont(font)
 		self.pwField.setEchoMode(QtWidgets.QLineEdit.Password)
 		self.pwField.setObjectName("pwField")
@@ -158,25 +132,33 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.rAccWidget.raise_()
 		self.optionsWidget.raise_()
 		self.logo.raise_()
-		self.exitButton.raise_()
-		self.minButton.raise_()
 		self.naHitbox.raise_()
 		self.pbHitbox.raise_()
 		self.logoHitbox = QtWidgets.QPushButton(Form)
-		self.logoHitbox.setGeometry(QtCore.QRect(375, 110, 201, 100))
+		self.playButton.setGeometry(QtCore.QRect(6, 238, 271, 231))
+		self.launcherBG.setGeometry(QtCore.QRect(0, 0, 540, 460))
+		self.cAccWidget.setGeometry(QtCore.QRect(22, 58, 241, 233))
+		self.rAccWidget.setGeometry(QtCore.QRect(22, 58, 241, 233))
+		self.accLabel.setGeometry(QtCore.QRect(10, 3, 261, 51))
+		self.optionsWidget.setGeometry(QtCore.QRect(290, 346, 231, 91))
+		self.optionsLabel.setGeometry(QtCore.QRect(290, 295, 231, 51))
+		self.naButton.setGeometry(QtCore.QRect(286, 107, 240, 240))
+		self.popCount.setGeometry(QtCore.QRect(290, 128, 231, 31))
+		self.logo.setGeometry(QtCore.QRect(305, 25, 201, 100))
+		self.naHitbox.setGeometry(QtCore.QRect(290, 175, 231, 111))
+		self.pbHitbox.setGeometry(QtCore.QRect(20, 310, 241, 127))
+		self.logoHitbox.setGeometry(QtCore.QRect(305, 25, 201, 100))
 		self.logoHitbox.setObjectName("logoHitbox")
 		self.logoHitbox.raise_()
-		self.exitHitbox.raise_()
-		self.minHitbox.raise_()
 		self.oldPos = self.pos()
 		self.retranslateUi(Form, FormTwo)
 		QtCore.QMetaObject.connectSlotsByName(Form)
 
 	def retranslateUi(self, Form, FormTwo):
 		_translate = QtCore.QCoreApplication.translate
-		Form.setWindowTitle(_translate("Form", "Form"))
+		Form.setWindowTitle(_translate("Form", "Toontown Quick Launcher"))
 		self.playButton.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\pbNormal.png\"/><img src=\"assets/pbNormal.png\"/></p></body></html>"))
-		FormTwo.setWindowTitle(_translate("Form", "Form"))
+		FormTwo.setWindowTitle(_translate("Form", "New Account"))
 		self.unField.setPlaceholderText(_translate("Form", "Username"))
 		self.pwField.setPlaceholderText(_translate("Form", "Password"))
 		self.naGoButton.setText(_translate("Form", "Go!"))
@@ -208,19 +190,15 @@ class mainWindow(QtWidgets.QMainWindow):
 			self.logo.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ccLogo.png\"/></p></body></html>"))
 		elif cfg[u'game'] == 'R':
 			self.logo.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ttrLogo.png\"/></p></body></html>"))
-			self.logo.setGeometry(QtCore.QRect(345, 100, 250, 123))
-			self.logoHitbox.setGeometry(QtCore.QRect(345, 100, 250, 123))
+			self.logo.setGeometry(QtCore.QRect(275, 15, 250, 123))
+			self.logoHitbox.setGeometry(QtCore.QRect(275, 15, 250, 123))
 			self.popCount.hide()
-		self.exitButton.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\exitNormal.png\"/></p></body></html>"))
-		self.minButton.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\minNormal.png\"/></p></body></html>"))
 		self.pbHitbox.pressed.connect(self.pbPress)
 		self.naHitbox.pressed.connect(self.naPress)
 		self.pbHitbox.released.connect(self.pbRelease)
 		self.naHitbox.released.connect(self.naRelease)
 		self.pbHitbox.clicked.connect(self.pbClick)
 		self.naHitbox.clicked.connect(self.naClick)
-		self.exitHitbox.clicked.connect(self.onClose)
-		self.minHitbox.clicked.connect(self.minClick)
 		self.naGoButton.clicked.connect(self.naGoClick)
 		if len(ableToRun) == 2:
 			self.logoHitbox.clicked.connect(self.gameChange)
@@ -228,6 +206,15 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.rAccWidget.itemClicked.connect(self.usernameClicked)
 		self.optionsWidget.itemClicked.connect(self.optionClicked)
 		
+	def mouseMoveEvent(self, event):
+		if event.buttons() == QtCore.Qt.NoButton:
+			print("Simple mouse motion")
+		elif event.buttons() == QtCore.Qt.LeftButton:
+			print("Left click drag")
+		elif event.buttons() == QtCore.Qt.RightButton:
+			print("Right click drag")
+		super(GraphicsView, self).mouseMoveEvent(event)
+	
 	def pbPress(self):
 		self.playButton.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\pbClicked.png\"/><img src=\"" + assetsPath() + "\\pbClicked.png\"/></p></body></html>"))
 	
@@ -241,20 +228,22 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.naButton.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\naNormal.png\"/><img src=\"" + assetsPath() + "\\naNormal.png\"/></p></body></html>"))
 		
 	def pbClick(self):
-		for u in clickedUsers:
+		while len(clickedUsers) != 0:
 			la = False
-			if u == clickedUsers[0]:
+			if len(clickedUsers) == 1:
 				la = True
 			if cfg[u'game'] == 'C':
 				tcfg = cfg[u'clashAccounts']
-				button = self.cAccWidget.item(cu.index(u))
+				button = self.cAccWidget.item(cu.index(clickedUsers[0]))
 			elif cfg[u'game'] == 'R':
 				tcfg = cfg[u'ttrAccounts']
-				button = self.rAccWidget.item(ru.index(u))
+				button = self.rAccWidget.item(ru.index(clickedUsers[0]))
 			for a in tcfg:
-				if a[u'username'] == u:
+				if a[u'username'] == clickedUsers[0]:
 					c = a
-			gameThread = threading.Thread(name=u,target=startGame,args=(c, la, self, button,))
+			gameThread = threading.Thread(name=clickedUsers[0],target=startGame,args=(c, la, self, button,))
+			button.setFlags(QtCore.Qt.NoItemFlags)
+			clickedUsers.remove(clickedUsers[0])
 			gameThread.start()
 			
 	def gameChange(self):
@@ -269,8 +258,8 @@ class mainWindow(QtWidgets.QMainWindow):
 			bothCU[0] = clickedUsers
 			clickedUsers = bothCU[1]
 			self.logo.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ttrLogo.png\"/></p></body></html>"))
-			self.logo.setGeometry(QtCore.QRect(345, 100, 250, 123))
-			self.logoHitbox.setGeometry(QtCore.QRect(345, 100, 250, 123))
+			self.logo.setGeometry(QtCore.QRect(275, 15, 250, 123))
+			self.logoHitbox.setGeometry(QtCore.QRect(275, 15, 250, 123))
 		elif cfg[u'game'] == 'R':
 			cfg[u'game'] = 'C'
 			self.cAccWidget.show()
@@ -281,8 +270,8 @@ class mainWindow(QtWidgets.QMainWindow):
 			bothCU[1] = clickedUsers
 			clickedUsers = bothCU[0]
 			self.logo.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ccLogo.png\"/></p></body></html>"))
-			self.logo.setGeometry(QtCore.QRect(375, 110, 201, 100))
-			self.logoHitbox.setGeometry(QtCore.QRect(375, 110, 201, 100))
+			self.logo.setGeometry(QtCore.QRect(305, 25, 201, 100))
+			self.logoHitbox.setGeometry(QtCore.QRect(305, 25, 201, 100))
 
 	def naClick(self):
 		naWindow.show()
@@ -351,9 +340,6 @@ class mainWindow(QtWidgets.QMainWindow):
 				self.unField.setText("")
 				self.pwField.setText("")
 				naWindow.hide()
-
-	def minClick(self):
-		window.showMinimized()
 		
 	def onClose(self):
 		os.chdir(wd)
@@ -466,11 +452,6 @@ def startGame(tc, la, self, button):
 			print("Oof! Login failed, try again.")
 			button.setFlags(QtCore.Qt.ItemIsEnabled)
 			return
-	try:
-		button.setFlags(QtCore.Qt.NoItemFlags)
-		clickedUsers.remove(tc[u'username'])
-	except:
-		pass
 	print("Welcome back to Toontown, " + tc[u'username'] + "!								")
 	if not clickedOptions[u'vb'] and not clickedOptions[u'cl'] and la:
 		gw = subprocess.Popen(args=exe)
@@ -485,10 +466,7 @@ def startGame(tc, la, self, button):
 			if clickedOptions[u'rs']:
 				startGame(tc, True, self, button)
 			else:
-				if cg == 'C':
-					button.setFlags(QtCore.Qt.ItemIsEnabled)
-				elif cg == 'R':
-					button.setFlags(QtCore.Qt.ItemIsEnabled)
+				button.setFlags(QtCore.Qt.ItemIsEnabled)
 				clickedUsers.append(tc[u'username'])
 			break
 	
@@ -511,6 +489,7 @@ except:
 			check[0] = False
 		else:
 			for f in os.listdir(clashDir):
+				print(str(f))
 				if str(f) == "CorporateClash.exe":
 					check[0] = False
 	while check[1]:
