@@ -1,13 +1,12 @@
 '''
 PyQt-based Toontown launcher script by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash) 
-Current Version: v1.4-rc6 | Last updated: July 4, 2019
+Current Version: v1.4-rc7 | Last updated: January 5, 2020
 This script lets you log in quickly and efficiently, with a couple other bells and whistles as well.
 Requirements: You just need to put the .exe file in your game folder. If you'd like to run the file straight from the python script, you'll need python 3.7, and you also need to have the requests, pywin32, and pygubu libraries installed.
 
 TO-DO LIST FOR v1.4:
 - Make 2FA/ToonStep look nicer
 - Clean up setupUi and retranslateUi functions
-- Add a console output mode
 '''
 
 import subprocess, os, sys, threading, requests, win32api, win32gui, win32com.shell.shell as shell
@@ -20,7 +19,7 @@ class mainWindow(QtWidgets.QMainWindow):
 		Form.resize(540, 460)
 		Form.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint)
 		Form.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
-		#Form.setWindowFlags(QtCore.Qt.MSWindowsFixedSizeDialogHint)
+		Form.setWindowFlags(QtCore.Qt.MSWindowsFixedSizeDialogHint)
 		Form.setStyleSheet("background:transparent;")
 		self.playButton = QtWidgets.QLabel(Form)
 		self.playButton.setObjectName("playButton")
@@ -75,7 +74,8 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.naButton = QtWidgets.QLabel(Form)
 		self.naButton.setObjectName("naButton")
 		self.naButton.setMouseTracking(True)
-		self.popCount = QtWidgets.QLabel(Form)
+		self.cPopCount = QtWidgets.QLabel(Form)
+		self.rPopCount = QtWidgets.QLabel(Form)
 		font.setPointSize(12)
 		self.optionsWidget.setFont(font)
 		self.optionsWidget.setFrameShape(QtWidgets.QFrame.NoFrame)
@@ -92,8 +92,10 @@ class mainWindow(QtWidgets.QMainWindow):
 		item.setIcon(self.ucIcon)
 		item.setFlags(QtCore.Qt.ItemIsEnabled)
 		self.optionsWidget.addItem(item)
-		self.popCount.setFont(font)
-		self.popCount.setObjectName("popCount")
+		self.cPopCount.setFont(font)
+		self.cPopCount.setObjectName("cPopCount")
+		self.rPopCount.setFont(font)
+		self.rPopCount.setObjectName("rPopCount")
 		self.logo = QtWidgets.QLabel(Form)
 		self.logo.setObjectName("logo")
 		self.naHitbox = QtWidgets.QPushButton(Form)
@@ -115,7 +117,8 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.naButton.raise_()
 		self.accLabel.raise_()
 		self.optionsLabel.raise_()
-		self.popCount.raise_()
+		self.cPopCount.raise_()
+		self.rPopCount.raise_()
 		self.cAccWidget.raise_()
 		self.rAccWidget.raise_()
 		self.optionsWidget.raise_()
@@ -133,7 +136,8 @@ class mainWindow(QtWidgets.QMainWindow):
 		self.optionsWidget.setGeometry(QtCore.QRect(290, 346, 231, 91))
 		self.optionsLabel.setGeometry(QtCore.QRect(290, 295, 231, 51))
 		self.naButton.setGeometry(QtCore.QRect(286, 107, 240, 240))
-		self.popCount.setGeometry(QtCore.QRect(290, 128, 231, 31))
+		self.cPopCount.setGeometry(QtCore.QRect(290, 128, 231, 31))
+		self.rPopCount.setGeometry(QtCore.QRect(290, 128, 231, 31))
 		self.logo.setGeometry(QtCore.QRect(305, 25, 201, 100))
 		self.naHitbox.setGeometry(QtCore.QRect(290, 175, 231, 111))
 		self.pbHitbox.setGeometry(QtCore.QRect(20, 310, 241, 127))
@@ -159,23 +163,24 @@ class mainWindow(QtWidgets.QMainWindow):
 		__sortingEnabled = self.optionsWidget.isSortingEnabled()
 		self.optionsWidget.setSortingEnabled(False)
 		self.vbButton, self.rsButton, self.clButton = self.optionsWidget.item(0), self.optionsWidget.item(1), self.optionsWidget.item(2)
-		self.vbButton.setText(_translate("Form", "No Verbose Output"))
+		self.vbButton.setText(_translate("Form", "Console Output"))
 		self.rsButton.setText(_translate("Form", "Restart on Game Exit"))
 		self.clButton.setText(_translate("Form", "Close Launcher"))
 		self.optionsWidget.setSortingEnabled(__sortingEnabled)
 		self.optionsLabel.setText(_translate("Form", "<html><head/><body><p align=\"center\">Options:</p></body></html>"))
 		self.naButton.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\naNormal.png\"/></p></body></html>"))
 		self.launcherBG.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\launcherBG.png\"/></p></body></html>"))
-		self.popCount.setText(_translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
-		self.popTrackerActive, self.popThread, self.popWait, self.gpWait, self.toonstepMode, self.rf, self.nacg, self.natc = True, threading.Thread(name="popThread",target=popTracker,args=(self,)), threading.Event(), {}, False, {}, '', {}
-		self.popThread.start()
+		self.cPopCount.setText(_translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
+		self.rPopCount.setText(_translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
+		self.cPopTrackerActive, self.rPopTrackerActive, self.cPopThread, self.rPopThread, self.cPopWait, self.rPopWait, self.gpWait, self.toonstepMode, self.rf, self.nacg, self.natc = True, True, threading.Thread(name="cPopThread",target=cPopTracker,args=(self,)), threading.Thread(name="rPopThread",target=rPopTracker,args=(self,)), threading.Event(), threading.Event(), {}, False, {}, '', {}
+		self.cPopThread.start()
+		self.rPopThread.start()
 		if cfg[u'game'] == 'C':
 			self.logo.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ccLogo.png\"/></p></body></html>"))
+			self.rPopCount.hide()
 		elif cfg[u'game'] == 'R':
 			self.logo.setText(_translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ttrLogo.png\"/></p></body></html>"))
-			self.logo.setGeometry(QtCore.QRect(275, 15, 250, 123))
-			self.logoHitbox.setGeometry(QtCore.QRect(275, 15, 250, 123))
-			self.popCount.hide()
+			self.cPopCount.hide()
 		self.pbHitbox.pressed.connect(self.pbPress)
 		self.naHitbox.pressed.connect(self.naPress)
 		self.pbHitbox.released.connect(self.pbRelease)
@@ -210,12 +215,11 @@ class mainWindow(QtWidgets.QMainWindow):
 				self.rAccWidget.show()
 			self.current = ru
 			self.currentUB = self.rub
-			self.popCount.hide()
+			self.cPopCount.hide()
+			self.rPopCount.show()
 			bothCU[0] = clickedUsers
 			clickedUsers = bothCU[1]
 			self.logo.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ttrLogo.png\"/></p></body></html>"))
-			self.logo.setGeometry(QtCore.QRect(275, 15, 250, 123))
-			self.logoHitbox.setGeometry(QtCore.QRect(275, 15, 250, 123))
 		elif cfg[u'game'] == 'R':
 			cfg[u'game'] = 'C'
 			if mode != 1:
@@ -223,12 +227,11 @@ class mainWindow(QtWidgets.QMainWindow):
 				self.rAccWidget.hide()
 			self.current = cu
 			self.currentUB = self.cub
-			self.popCount.show()
+			self.rPopCount.hide()
+			self.cPopCount.show()
 			bothCU[1] = clickedUsers
 			clickedUsers = bothCU[0]
 			self.logo.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p><img src=\"" + assetsPath() + "\\ccLogo.png\"/></p></body></html>"))
-			self.logo.setGeometry(QtCore.QRect(305, 25, 201, 100))
-			self.logoHitbox.setGeometry(QtCore.QRect(305, 25, 201, 100))
 
 	def naClick(self):
 		global mode
@@ -347,7 +350,8 @@ class mainWindow(QtWidgets.QMainWindow):
 	def onClose(self):
 		os.chdir(wd)
 		window.hide()
-		self.popTrackerActive = False
+		self.cPopTrackerActive = False
+		self.rPopTrackerActive = False
 		with open('launcherConfig.json', 'w') as f:
 			f.write(str(cfg))
 		for e in self.gpWait:
@@ -396,26 +400,47 @@ class mainWindow(QtWidgets.QMainWindow):
 			else:
 				opBox.setIcon(self.chIcon)
 
-def popTracker(self):
+def cPopTracker(self):
 	url = 'https://corporateclash.net/api/v1/districts/'
 	while True:
-		if self.popTrackerActive:
+		if self.cPopTrackerActive:
 			if cfg[u'game'] == 'C':
 				try:
 					r = requests.get(url).json()
 					population = 0
 					for a in r:
 						population += a[u'population']
-					self.popCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Population: " + str(population) + "</span></p></body></html>"))
+					self.cPopCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Population: " + str(population) + "</span></p></body></html>"))
 					for i in range(0, 20):
-						if self.popTrackerActive:
-							self.popWait.wait(timeout=0.5)
+						if self.cPopTrackerActive:
+							self.cPopWait.wait(timeout=0.5)
 						else:
 							break
 				except:
 					pass
 			else:
-				self.popCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
+				self.cPopCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
+		else:
+			break
+			
+def rPopTracker(self):
+	url = 'https://www.toontownrewritten.com/api/population'
+	while True:
+		if self.rPopTrackerActive:
+			if cfg[u'game'] == 'R':
+				try:
+					r = requests.get(url).json()
+					population = r[u'totalPopulation']
+					self.rPopCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Population: " + str(population) + "</span></p></body></html>"))
+					for i in range(0, 20):
+						if self.rPopTrackerActive:
+							self.rPopWait.wait(timeout=0.5)
+						else:
+							break
+				except:
+					pass
+			else:
+				self.rPopCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
 		else:
 			break
 	
@@ -456,7 +481,7 @@ def startGame(tc, la, self, button):
 			button.setFlags(QtCore.Qt.ItemIsEnabled)
 			return
 	print("Welcome back to Toontown, " + tc[u'username'] + "!								")
-	if not clickedOptions[u'vb'] and not clickedOptions[u'cl'] and la:
+	if clickedOptions[u'vb'] and not clickedOptions[u'cl'] and la:
 		gw = subprocess.Popen(args=exe)
 	else:
 		gw = subprocess.Popen(args=exe, creationflags=0x08000000)
