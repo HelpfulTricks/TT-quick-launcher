@@ -1,12 +1,8 @@
 '''
-PyQt-based Toontown launcher script by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash) 
-Current Version: v1.4-rc7 | Last updated: January 5, 2020
+PyQt-based Toontown launcher script by HelpfulTricks (for Toontown Rewritten and Toontown Corporate Clash) 
+Current Version: v1.4-rc8 | Last updated: July 24, 2020
 This script lets you log in quickly and efficiently, with a couple other bells and whistles as well.
 Requirements: You just need to put the .exe file in your game folder. If you'd like to run the file straight from the python script, you'll need python 3.7, and you also need to have the requests, pywin32, and pygubu libraries installed.
-
-TO-DO LIST FOR v1.4:
-- Make 2FA/ToonStep look nicer
-- Clean up setupUi and retranslateUi functions
 '''
 
 import subprocess, os, sys, threading, requests, win32api, win32gui, win32com.shell.shell as shell
@@ -443,7 +439,7 @@ def rPopTracker(self):
 				self.rPopCount.setText(QtCore.QCoreApplication.translate("Form", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Getting Population...</span></p></body></html>"))
 		else:
 			break
-	
+
 def startGame(tc, la, self, button):
 	cg = cfg[u'game']
 	self.gpWait[tc[u'username']] = threading.Event()
@@ -455,8 +451,12 @@ def startGame(tc, la, self, button):
 			os.environ["TT_PLAYCOOKIE"] = r[u'token']
 			os.environ["TT_GAMESERVER"] = "gs.corporateclash.net"
 		else:
+			button.setText(str(r[u'friendlyreason']))
 			print("Login failed with error code " + str(r[u'reason']) + ". (" + str(r[u'friendlyreason']) + ")")
+			self.gpWait[tc[u'username']].wait(timeout=4)
+			button.setText(QtCore.QCoreApplication.translate("Form", tc[u'username']))
 			button.setFlags(QtCore.Qt.ItemIsEnabled)
+			clickedUsers.append(tc[u'username'])
 			return
 	if cg == 'R':
 		os.chdir(cfg[u'ttrDir'])
@@ -479,6 +479,7 @@ def startGame(tc, la, self, button):
 		else:
 			print("Oof! Login failed, try again.")
 			button.setFlags(QtCore.Qt.ItemIsEnabled)
+			clickedUsers.append(tc[u'username'])
 			return
 	print("Welcome back to Toontown, " + tc[u'username'] + "!								")
 	if clickedOptions[u'vb'] and not clickedOptions[u'cl'] and la:
