@@ -1,12 +1,13 @@
 '''
-PyQt-based Toontown launcher script by HelpfulTricks (for Toontown Rewritten and Toontown Corporate Clash) 
-Current Version: v1.4-rc8 | Last updated: July 24, 2020
+PyQt-based Toontown launcher script by TheMaskedMeowth (for Toontown Rewritten and Toontown Corporate Clash) 
+Current Version: v1.4-rc9 | Last updated: July 25, 2020
 This script lets you log in quickly and efficiently, with a couple other bells and whistles as well.
-Requirements: You just need to put the .exe file in your game folder. If you'd like to run the file straight from the python script, you'll need python 3.7, and you also need to have the requests, pywin32, and pygubu libraries installed.
+Requirements: You just need to put the .exe file in your game folder. If you'd like to run the file straight from the python script, you'll need python 3.7, and you also need to have the requests, pywin32, pygubu, and cryptography libraries installed.
 '''
 
 import subprocess, os, sys, threading, requests, win32api, win32gui, win32com.shell.shell as shell
 from PyQt5 import QtCore, QtGui, QtWidgets
+from cryptography.fernet import Fernet
 
 class mainWindow(QtWidgets.QMainWindow):
 	def setupUi(self, Form):
@@ -249,10 +250,11 @@ class mainWindow(QtWidgets.QMainWindow):
 			self.pwField.hide()
 		
 	def naGoClick(self):
-		if self.toonstepMode == False:				
+		if self.toonstepMode == False:
 			self.nacg = cfg[u'game']
 			self.natc = {'username': self.unField.text(), 'password': self.pwField.text()}
 		self.gpWait[self.natc[u'username']] = threading.Event()
+		#f.encrypt(self.pwField.text().encode())
 		if self.nacg == 'C':
 			os.chdir(cfg[u'clashDir'])
 			exe = "CorporateClash.exe"
@@ -348,8 +350,12 @@ class mainWindow(QtWidgets.QMainWindow):
 		window.hide()
 		self.cPopTrackerActive = False
 		self.rPopTrackerActive = False
-		with open('launcherConfig.json', 'w') as f:
-			f.write(str(cfg))
+		with open('launcherConfig.json', 'w') as g:
+			for i in cfg[u'clashAccounts']:
+				i[u'password'] = f.encrypt(i[u'password'].encode())
+			for i in cfg[u'ttrAccounts']:
+				i[u'password'] = f.encrypt(i[u'password'].encode())
+			g.write(str(cfg))
 		for e in self.gpWait:
 			self.gpWait[e].set()
 		for t in threading.enumerate():
@@ -362,6 +368,7 @@ class mainWindow(QtWidgets.QMainWindow):
 			username = self.current[self.currentUB.index(unBox)]
 			if username in clickedUsers:
 				unBox.setIcon(self.ucIcon)
+				
 				clickedUsers.remove(username)
 			else:
 				unBox.setIcon(self.chIcon)
@@ -499,6 +506,14 @@ def startGame(tc, la, self, button):
 				clickedUsers.append(tc[u'username'])
 			break
 	
+def generate_key():
+    key = Fernet.generate_key()
+    with open("secret.key", "wb") as key_file:
+        key_file.write(key)
+
+def load_key():
+    return open("secret.key", "rb").read()
+	
 def assetsPath():
 	os.chdir(wd)
 	try:
@@ -530,6 +545,12 @@ except:
 				if str(f) == "TTREngine.exe":
 					check[1] = False
 	cfg = {'clashAccounts': [], 'ttrAccounts': [], 'clashDir': clashDir, 'ttrDir': ttrDir, 'game': ''}
+try:
+	key = load_key()
+except:
+	generate_key()
+	key = load_key()
+f = Fernet(key)
 ableToRun, cu, ru, bothCU = [], [], [], [[], []]
 if cfg[u'clashDir'] != "":
 	ableToRun.append('C')
@@ -545,6 +566,10 @@ if cfg[u'game'] == '' or len(ableToRun) == 1:
 	cfg[u'game'] = ableToRun[0]
 clickedUsers, clickedOptions = [], {'vb': False, 'rs': False, 'cl': False}
 
+for i in cfg[u'clashAccounts']:
+	i[u'password'] = f.decrypt(i[u'password']).decode()
+for i in cfg[u'ttrAccounts']:
+	i[u'password'] = f.decrypt(i[u'password']).decode()
 ui.setupUi(window)
 window.show()
 app.exec_()
